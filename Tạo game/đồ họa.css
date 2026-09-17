@@ -1,0 +1,233 @@
+body {
+    margin: 0;
+    background: #222;
+    font-family: Arial, sans-serif;
+    color: white;
+}
+
+
+/* =========================
+   CHỌN CLASS
+========================= */
+
+#class-screen {
+    text-align: center;
+    padding-top: 80px;
+}
+
+#class-screen h1 {
+    font-size: 40px;
+}
+
+#classes {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 40px;
+}
+
+.class-button {
+    width: 180px;
+    height: 180px;
+
+    background: #333;
+    color: white;
+
+    border: 2px solid #777;
+    border-radius: 15px;
+
+    cursor: pointer;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 10px;
+
+    font-size: 45px;
+}
+
+.class-button:hover {
+    background: #555;
+    transform: scale(1.05);
+}
+
+.class-button b {
+    font-size: 20px;
+}
+
+.class-button span {
+    font-size: 14px;
+}
+
+
+/* =========================
+   GAME SCREEN
+========================= */
+
+#game-screen {
+    display: none;
+}
+
+
+/* =========================
+   STATUS
+========================= */
+
+#status {
+    width: 800px;
+
+    margin: 20px auto 0;
+
+    padding: 10px;
+
+    box-sizing: border-box;
+
+    background: #333;
+
+    display: flex;
+
+    justify-content: space-around;
+
+    font-size: 15px;
+}
+
+
+/* =========================
+   MAP
+========================= */
+
+#game {
+    width: 800px;
+    height: 500px;
+
+    margin: 20px auto;
+
+    background: #4d8b45;
+
+    position: relative;
+
+    overflow: hidden;
+}
+
+
+/* =========================
+   PLAYER
+========================= */
+
+#player {
+    position: absolute;
+
+    left: 380px;
+    top: 230px;
+
+    font-size: 40px;
+
+    z-index: 10;
+}
+
+
+/* =========================
+   TREE
+========================= */
+
+.tree {
+    position: absolute;
+
+    font-size: 45px;
+
+    z-index: 2;
+
+    user-select: none;
+}
+
+
+/* =========================
+   ENEMY
+========================= */
+
+#enemy {
+    position: absolute;
+
+    left: 200px;
+    top: 150px;
+
+    text-align: center;
+
+    z-index: 5;
+}
+
+#enemy-character {
+    font-size: 40px;
+}
+
+#enemy-hp {
+    color: white;
+
+    background: black;
+
+    padding: 3px 6px;
+
+    font-size: 14px;
+}
+
+
+/* =========================
+   BOSS
+========================= */
+
+#boss {
+    position: absolute;
+
+    left: 550px;
+    top: 300px;
+
+    text-align: center;
+
+    z-index: 5;
+}
+
+#boss-character {
+    font-size: 65px;
+}
+
+#boss-hp {
+    background: darkred;
+
+    padding: 5px 8px;
+
+    font-size: 15px;
+
+    font-weight: bold;
+}
+
+
+/* =========================
+   ĐẠN
+========================= */
+
+.projectile {
+    position: absolute;
+
+    width: 14px;
+    height: 14px;
+
+    border-radius: 50%;
+
+    background: yellow;
+
+    z-index: 20;
+}
+
+
+/* =========================
+   THÔNG BÁO
+========================= */
+
+#message {
+    text-align: center;
+
+    font-size: 16px;
+}
