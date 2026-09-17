@@ -14,6 +14,9 @@ const player =
 const enemy =
     document.getElementById("enemy");
 
+const goblinSprite =
+    document.getElementById("enemy-character");
+
 const enemyHPText =
     document.getElementById("enemy-hp");
 
@@ -166,13 +169,11 @@ function chooseClass() {
 
 
     // Ẩn menu
-
     classScreen.style.display =
         "none";
 
 
     // Hiện game
-
     gameScreen.style.display =
         "block";
 
@@ -188,42 +189,31 @@ document.addEventListener(
     function(event) {
 
         // Nếu chưa chọn class thì không chơi
-
         if (playerClass === "") {
             return;
         }
 
-
         // W
-
         if (event.key === "w") {
             y -= playerSpeed;
         }
 
-
         // S
-
         if (event.key === "s") {
             y += playerSpeed;
         }
 
-
         // A
-
         if (event.key === "a") {
             x -= playerSpeed;
         }
 
-
         // D
-
         if (event.key === "d") {
             x += playerSpeed;
         }
 
-
         // Giới hạn map
-
         if (x < 0) {
             x = 0;
         }
@@ -240,20 +230,15 @@ document.addEventListener(
             y = 460;
         }
 
-
         player.style.left =
             x + "px";
 
         player.style.top =
             y + "px";
 
-
         // SPACE
-
         if (event.key === " ") {
-
             attack();
-
         }
 
     }
@@ -267,16 +252,13 @@ document.addEventListener(
 function attack() {
 
     // Kiểm tra khoảng cách quái
-
     const enemyDistance =
         Math.sqrt(
             (x - enemyX) ** 2 +
             (y - enemyY) ** 2
         );
 
-
     // Kiểm tra khoảng cách boss
-
     const bossDistance =
         Math.sqrt(
             (x - bossX) ** 2 +
@@ -284,76 +266,53 @@ function attack() {
         );
 
 
-    // ====================================
-    // KIẾM SĨ
-    // ====================================
-
+    // Kiếm sĩ
     if (playerClass === "warrior") {
 
         if (enemyDistance < 100) {
-
             damageEnemy();
-
         }
 
         if (bossDistance < 120) {
-
             damageBoss();
-
         }
 
     }
 
-
-    // ====================================
-    // CUNG THỦ
-    // ====================================
-
+    // Cung thủ
     if (playerClass === "archer") {
 
         if (enemyDistance < 300) {
-
             createProjectile(
                 enemyX,
                 enemyY
             );
-
         }
 
         if (bossDistance < 300) {
-
             createProjectile(
                 bossX,
                 bossY
             );
-
         }
 
     }
 
-
-    // ====================================
-    // PHÁP SƯ
-    // ====================================
-
+    // Pháp sư
     if (playerClass === "mage") {
 
         if (enemyDistance < 350) {
-
             createMagicProjectile(
                 enemyX,
                 enemyY
             );
-
         }
 
         if (bossDistance < 350) {
-
             createMagicProjectile(
                 bossX,
                 bossY
             );
-
         }
 
     }
@@ -369,24 +328,16 @@ function damageEnemy() {
 
     enemyHp -= damage;
 
-
     enemyHPText.textContent =
         "HP: " +
         Math.max(enemyHp, 0) +
         "/" +
         maxEnemyHp;
 
-
     if (enemyHp <= 0) {
-
-        // + EXP
-
         exp += 10;
-
         updateEXP();
-
         spawnEnemy();
-
     }
 
 }
@@ -400,36 +351,23 @@ function damageBoss() {
 
     bossHp -= damage;
 
-
     bossHPText.textContent =
         "BOSS HP: " +
         Math.max(bossHp, 0) +
         "/" +
         maxBossHp;
 
-
     if (bossHp <= 0) {
-
-        // Boss cho 50 EXP
-
         exp += 50;
-
         updateEXP();
-
-
-        // Boss biến mất
 
         boss.style.display =
             "none";
-
-
-        // 3 giây sau xuất hiện lại
 
         setTimeout(
             spawnBoss,
             3000
         );
-
     }
 
 }
@@ -441,20 +379,12 @@ function damageBoss() {
 
 function updateEXP() {
 
-    // Kiểm tra lên level
-
     while (exp >= expNeeded) {
-
         level++;
-
         exp -= expNeeded;
-
         expNeeded += 30;
-
         damage += 5;
-
     }
-
 
     levelText.textContent =
         level;
@@ -482,16 +412,13 @@ function spawnEnemy() {
             Math.random() * 700
         ) + 30;
 
-
     enemyY =
         Math.floor(
             Math.random() * 400
         ) + 30;
 
-
     enemyHp =
         maxEnemyHp;
-
 
     enemy.style.left =
         enemyX + "px";
@@ -499,10 +426,8 @@ function spawnEnemy() {
     enemy.style.top =
         enemyY + "px";
 
-
     enemy.style.display =
         "block";
-
 
     enemyHPText.textContent =
         "HP: " +
@@ -524,16 +449,13 @@ function spawnBoss() {
             Math.random() * 650
         ) + 50;
 
-
     bossY =
         Math.floor(
             Math.random() * 350
         ) + 50;
 
-
     bossHp =
         maxBossHp;
-
 
     boss.style.left =
         bossX + "px";
@@ -541,10 +463,8 @@ function spawnBoss() {
     boss.style.top =
         bossY + "px";
 
-
     boss.style.display =
         "block";
-
 
     bossHPText.textContent =
         "BOSS HP: " +
@@ -556,7 +476,7 @@ function spawnBoss() {
 
 
 // ========================================
-// QUÁI TỰ ĐUỔI PLAYER
+// QUÁI TỰ ĐUỔI PLAYER (CẬP NHẬT GOBLIN)
 // ========================================
 
 setInterval(
@@ -566,52 +486,46 @@ setInterval(
             return;
         }
 
-
-        // Khoảng cách
-
+        // Tính khoảng cách
         const distance =
             Math.sqrt(
                 (x - enemyX) ** 2 +
                 (y - enemyY) ** 2
             );
 
-
-        // Nếu gần thì quái đánh
-
+        // Đánh khi chạm gần
         if (distance < 55) {
-
             playerHP -= 2;
-
             playerHPText.textContent =
                 Math.max(playerHP, 0);
-
         }
 
-
-        // Nếu chưa quá gần
-        // thì quái tiến về phía player
-
+        // Đuổi theo và đổi hướng mặt Goblin
         if (
             distance > 55 &&
             distance < 350
         ) {
 
-            if (enemyX < x) {
-                enemyX += 1;
-            }
+            const diffX = x - enemyX;
+            const diffY = y - enemyY;
 
-            if (enemyX > x) {
-                enemyX -= 1;
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                if (diffX > 0) {
+                    enemyX += 1;
+                    if (goblinSprite) goblinSprite.className = "goblin-right";
+                } else {
+                    enemyX -= 1;
+                    if (goblinSprite) goblinSprite.className = "goblin-left";
+                }
+            } else {
+                if (diffY > 0) {
+                    enemyY += 1;
+                    if (goblinSprite) goblinSprite.className = "goblin-down";
+                } else {
+                    enemyY -= 1;
+                    if (goblinSprite) goblinSprite.className = "goblin-up";
+                }
             }
-
-            if (enemyY < y) {
-                enemyY += 1;
-            }
-
-            if (enemyY > y) {
-                enemyY -= 1;
-            }
-
 
             enemy.style.left =
                 enemyX + "px";
@@ -621,19 +535,14 @@ setInterval(
 
         }
 
-
-        // Player chết
-
+        // Player bị hạ
         if (playerHP <= 0) {
-
             alert(
                 "💀 Bạn đã bị hạ! F5 để chơi lại."
             );
-
         }
 
     },
-
     100
 );
 
@@ -650,10 +559,8 @@ function createProjectile(
     const projectile =
         document.createElement("div");
 
-
     projectile.className =
         "projectile";
-
 
     projectile.style.left =
         x + "px";
@@ -661,15 +568,12 @@ function createProjectile(
     projectile.style.top =
         y + "px";
 
-
     document
         .getElementById("game")
         .appendChild(projectile);
 
-
     let px = x;
     let py = y;
-
 
     const dx =
         targetX - x;
@@ -677,16 +581,13 @@ function createProjectile(
     const dy =
         targetY - y;
 
-
     const distance =
         Math.sqrt(
             dx * dx +
             dy * dy
         );
 
-
     const speed = 8;
-
 
     const vx =
         dx / distance * speed;
@@ -694,15 +595,12 @@ function createProjectile(
     const vy =
         dy / distance * speed;
 
-
     const timer =
         setInterval(
             function() {
 
                 px += vx;
-
                 py += vy;
-
 
                 projectile.style.left =
                     px + "px";
@@ -710,52 +608,37 @@ function createProjectile(
                 projectile.style.top =
                     py + "px";
 
-
                 // Kiểm tra trúng quái
-
                 const hit =
                     Math.sqrt(
                         (px - targetX) ** 2 +
                         (py - targetY) ** 2
                     );
 
-
                 if (hit < 30) {
-
                     projectile.remove();
-
                     clearInterval(timer);
-
 
                     if (
                         targetX === enemyX &&
                         targetY === enemyY
                     ) {
-
                         damageEnemy();
-
                     }
-
                 }
 
-
                 // Ra khỏi map
-
                 if (
                     px < 0 ||
                     px > 800 ||
                     py < 0 ||
                     py > 500
                 ) {
-
                     projectile.remove();
-
                     clearInterval(timer);
-
                 }
 
             },
-
             30
         );
 
@@ -774,10 +657,8 @@ function createMagicProjectile(
     const projectile =
         document.createElement("div");
 
-
     projectile.className =
         "projectile";
-
 
     projectile.style.width =
         "20px";
@@ -785,22 +666,18 @@ function createMagicProjectile(
     projectile.style.height =
         "20px";
 
-
     projectile.style.left =
         x + "px";
 
     projectile.style.top =
         y + "px";
 
-
     document
         .getElementById("game")
         .appendChild(projectile);
 
-
     let px = x;
     let py = y;
-
 
     const dx =
         targetX - x;
@@ -808,16 +685,13 @@ function createMagicProjectile(
     const dy =
         targetY - y;
 
-
     const distance =
         Math.sqrt(
             dx * dx +
             dy * dy
         );
 
-
     const speed = 6;
-
 
     const vx =
         dx / distance * speed;
@@ -825,15 +699,12 @@ function createMagicProjectile(
     const vy =
         dy / distance * speed;
 
-
     const timer =
         setInterval(
             function() {
 
                 px += vx;
-
                 py += vy;
-
 
                 projectile.style.left =
                     px + "px";
@@ -841,24 +712,17 @@ function createMagicProjectile(
                 projectile.style.top =
                     py + "px";
 
-
                 const hit =
                     Math.sqrt(
                         (px - targetX) ** 2 +
                         (py - targetY) ** 2
                     );
 
-
                 if (hit < 30) {
-
                     projectile.remove();
-
                     clearInterval(timer);
-
                     damageEnemy();
-
                 }
-
 
                 if (
                     px < 0 ||
@@ -866,15 +730,11 @@ function createMagicProjectile(
                     py < 0 ||
                     py > 500
                 ) {
-
                     projectile.remove();
-
                     clearInterval(timer);
-
                 }
 
             },
-
             30
         );
 

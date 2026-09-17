@@ -145,7 +145,7 @@ body {
 
 
 /* =========================
-   ENEMY
+   ENEMY (GOBLIN SPRITE)
 ========================= */
 
 #enemy {
@@ -160,7 +160,25 @@ body {
 }
 
 #enemy-character {
-    font-size: 40px;
+    width: 48px;
+    height: 48px;
+    margin: 0 auto;
+    background-image: url('goblin.png');
+    background-size: 144px 192px;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+
+    animation: walkCycle 0.5s steps(3) infinite;
+}
+
+.goblin-down  { background-position-y: 0px; }
+.goblin-left  { background-position-y: -48px; }
+.goblin-right { background-position-y: -96px; }
+.goblin-up    { background-position-y: -144px; }
+
+@keyframes walkCycle {
+    from { background-position-x: 0px; }
+    to   { background-position-x: -144px; }
 }
 
 #enemy-hp {
