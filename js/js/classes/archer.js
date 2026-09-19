@@ -9,7 +9,7 @@ window.GAME_CLASSES.archer = {
     rng: 320,
     hp: 100,
     ranged: true,
-    pIcon: "🏹",
+    pIcon: "→",
 
     onSelect(player, playerEl) {
         playerEl.className = "facing-left";

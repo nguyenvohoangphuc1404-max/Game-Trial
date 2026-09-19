@@ -174,7 +174,7 @@ body {
     overflow: visible !important;
 }
 
-/* QUAY HƯỚNG BẰNG BIẾN --dir (KHÔNG LÀM HỎNG ANIMATION) */
+/* QUAY HƯỚNG BẰNG BIẾN --dir */
 .facing-left {
     --dir: 1;
 }
@@ -207,16 +207,22 @@ body {
     }
 }
 
-/* ĐÁNH / ĐÂM KIẾM */
+/* HOẠT ẢNH TẤN CÔNG (ĐỒNG BỘ ĐÚNG CLASS TRONG JS) */
 .knight-attacking {
     animation: knightThrust 0.3s steps(2) forwards !important;
 }
+
 @keyframes knightThrust {
-    from { 
+    0% { 
         background-position: 0% 66.66%; 
         transform: translate(-50%, -50%) scaleX(var(--dir));
     }
-    to { 
+    50% {
+        background-position: 50% 66.66%; 
+        /* Lao nhẹ người về trước khi đâm */
+        transform: translate(calc(-50% + (var(--dir) * 8px)), -50%) scaleX(var(--dir));
+    }
+    100% { 
         background-position: 100% 66.66%; 
         transform: translate(-50%, -50%) scaleX(var(--dir));
     }

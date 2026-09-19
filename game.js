@@ -14,9 +14,48 @@ let isAttacking = false;
 let isCastingUlt = false;
 let facingDirection = "left";
 
+// ĐÃ BỔ SUNG ĐỦ 4 CLASS: Chiến binh, Nhà khoa học, Phù thủy, Xạ thủ
 const CLASSES = window.GAME_CLASSES || {
-    warrior: { name: "Chiến binh", dmg: 20, spd: 7, rng: 110, hp: 120, ranged: false, icon: "⚔️" },
-    scientist: { name: "Nhà khoa học", dmg: 25, spd: 6, rng: 300, hp: 80, ranged: true, icon: "⚡", pIcon: "🔮" }
+    warrior: { 
+        name: "Chiến Binh", 
+        dmg: 22, 
+        spd: 7, 
+        rng: 110, 
+        hp: 130, 
+        ranged: false, 
+        icon: "⚔️", 
+        pIcon: "" 
+    },
+    scientist: { 
+        name: "Nhà Khoa Học", 
+        dmg: 28, 
+        spd: 6, 
+        rng: 320, 
+        hp: 85, 
+        ranged: true, 
+        icon: "⚡", 
+        pIcon: "🔮" 
+    },
+    mage: { 
+        name: "Phù Thủy", 
+        dmg: 35, 
+        spd: 5.5, 
+        rng: 340, 
+        hp: 75, 
+        ranged: true, 
+        icon: "🧙", 
+        pIcon: "🔥" 
+    },
+    archer: { 
+        name: "Xạ Thủ", 
+        dmg: 24, 
+        spd: 8, 
+        rng: 380, 
+        hp: 90, 
+        ranged: true, 
+        icon: "🏹", 
+        pIcon: "➹" 
+    }
 };
 
 // Người chơi & Boss
@@ -146,7 +185,34 @@ function toggleDualMenu() {
         renderInventory(); 
     }
 }
+// --- NÚT THOÁT VỀ MÀN HÌNH CHỌN CLASS ---
+const btnChangeClass = $("btn-change-class");
+if (btnChangeClass) {
+    btnChangeClass.onclick = returnToClassSelect;
+}
 
+function returnToClassSelect() {
+    // 1. Đóng menu túi đồ nếu đang mở
+    if (isSideMenuOpen) toggleDualMenu();
+
+    // 2. Ẩn màn hình game, hiện lại màn hình chọn class
+    $("game-screen").style.display = "none";
+    $("class-screen").style.display = "block";
+
+    // 3. Reset các phím điều khiển để nhân vật không bị trôi
+    for (let k in keys) keys[k] = false;
+
+    // 4. Thu dọn các hiệu ứng và đạn còn sót lại trên sàn
+    projectiles.forEach(p => p.el?.remove());
+    projectiles.length = 0;
+
+    // 5. Đưa nhân vật về trạng thái đứng yên tại vị trí ban đầu
+    player.x = 450;
+    player.y = 350;
+    isMoving = false;
+    isAttacking = false;
+    isJumping = false;
+}
 function renderInventory() {
     $("inventory-grid").innerHTML = Array.from({ length: 12 }, (_, i) => {
         const it = inventory[i];
@@ -209,6 +275,7 @@ function attack() {
     }
 
     const targets = [...enemies, ...(boss.hp > 0 ? [boss] : [])].filter(t => t.hp > 0);
+
     if (player.ranged) {
         const target = targets.reduce((best, t) => {
             const d = dist(player, t);
@@ -231,7 +298,17 @@ function attack() {
             });
         }
     } else {
-        targets.filter(t => dist(player, t) <= player.rng).forEach(t => applyDamage(t, player.dmg));
+        const attackRange = Math.max(player.rng, 130);
+        targets.forEach(t => {
+            const d = dist(player, t);
+            if (d <= attackRange) {
+                const isTargetOnRight = t.x >= player.x;
+                const isFacingRight = (facingDirection === "right");
+                if (d < 45 || (isFacingRight && isTargetOnRight) || (!isFacingRight && !isTargetOnRight)) {
+                    applyDamage(t, player.dmg);
+                }
+            }
+        });
     }
 }
 
@@ -295,7 +372,7 @@ function castUltimate() {
     if (!isGodMode && player.energy < 100) return;
     if (isCastingUlt) return;
 
-    if (player.classKey === "scientist") {
+    if (player.classKey === "scientist" || player.classKey === "mage") {
         castLightningDragon();
     } else {
         castWarriorBladestorm();
