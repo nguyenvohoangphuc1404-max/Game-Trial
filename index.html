@@ -2,6 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Hiệp Sĩ RPG</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -40,13 +41,13 @@
         <!-- HUD THANH TRẠNG THÁI TRÊN CÙNG -->
         <div id="status">
             <div>Class: <span id="class-name">---</span></div>
-            <div>⚔️ Level: <span id="level">1</span></div>
+            <div>⚔️ Cấp: <span id="level">1</span></div>
             <div>⭐ EXP: <span id="exp">0</span>/<span id="exp-needed">70</span></div>
             <div>💥 ATK: <span id="damage">10</span></div>
             <div>❤️ HP: <span id="player-hp">100</span>/<span id="player-max-hp">100</span></div>
             <div>⚡ Nộ: <span id="scientist-ult">0</span>/100</div>
             <div class="hud-buttons">
-                <button id="btn-toggle-ui">🎒 Bảng Menu (B / C)</button>
+                <button id="btn-toggle-ui">🎒 Menu (B/C)</button>
             </div>
         </div>
 
@@ -68,7 +69,7 @@
                 <!-- NGƯỜI CHƠI -->
                 <div id="player">⚔️</div>
 
-                <!-- QUÁI VẬT -->
+                <!-- GOBLINS -->
                 <div id="enemies-container"></div>
 
                 <!-- BOSS ORC -->
@@ -104,14 +105,34 @@
                     <div class="panel-header">
                         <h3>🎒 Túi Đồ</h3>
                     </div>
-                    <p class="modal-hint">Nhấp chuột vào vật phẩm để sử dụng</p>
+                    <p class="modal-hint">Nhấp chạm vật phẩm để dùng</p>
                     <div id="inventory-grid" class="inventory-grid"></div>
                 </div>
             </div>
         </div>
 
+        <!-- CỤM PHÍM BẤM ẢO CẢM ỨNG CHO ĐIỆN THOẠI -->
+        <div id="touch-controls">
+            <!-- Cụm D-Pad bên trái -->
+            <div class="touch-dpad">
+                <button class="touch-btn dpad-up" data-key="w">▲</button>
+                <div class="dpad-middle">
+                    <button class="touch-btn dpad-left" data-key="a">◀</button>
+                    <button class="touch-btn dpad-down" data-key="s">▼</button>
+                    <button class="touch-btn dpad-right" data-key="d">▶</button>
+                </div>
+            </div>
+
+            <!-- Cụm nút hành động bên phải -->
+            <div class="touch-actions">
+                <button class="touch-btn btn-act btn-ult" data-action="ult">⚡</button>
+                <button class="touch-btn btn-act btn-jump" data-action="jump">🦘</button>
+                <button class="touch-btn btn-act btn-atk" data-action="atk">⚔️</button>
+            </div>
+        </div>
+
         <div id="message">
-            WASD: Di chuyển • SPACE: Tấn công • E: Chiêu Nộ • B / C: Bật/Tắt Giao diện • Phím ~: Bật Debug Tool
+            PC: WASD (Di chuyển) • SHIFT (Chạy) • J (Nhảy) • SPACE (Đánh) • E (Nộ) • B/C (Menu) • Phím ~ (Debug Tool)
         </div>
     </div>
 
@@ -124,7 +145,7 @@
             <button onclick="debugLevelUp()">⭐ Lên 1 Cấp</button>
             <button onclick="debugSpawnItems()">🧪 Thêm 10 Bình Máu</button>
             <button onclick="debugKillAllEnemies()">💀 Dọn Sạch Quái</button>
-            <button onclick="debugSpawnBoss()">👹 Hồi Sinh Boss</button>
+            <button onclick="debugSpawnBoss()">👹 Kéo Boss Lại Gần</button>
         </div>
         <div style="margin-top: 8px; font-size: 11px; color: #aaa;">
             God Mode: <span id="debug-godmode-status" style="color: red;">TẮT</span>

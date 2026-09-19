@@ -4,28 +4,32 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: white;
     user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    overflow-x: hidden;
 }
 
 #class-screen {
     text-align: center;
-    padding-top: 80px;
+    padding-top: 60px;
 }
 
 #class-screen h1 {
-    font-size: 42px;
+    font-size: 40px;
     letter-spacing: 2px;
 }
 
 #classes {
     display: flex;
     justify-content: center;
-    gap: 20px;
-    margin-top: 40px;
+    gap: 15px;
+    margin-top: 30px;
+    flex-wrap: wrap;
 }
 
 .class-button {
-    width: 190px;
-    height: 190px;
+    width: 170px;
+    height: 170px;
     background: #2b2b2b;
     color: white;
     border: 2px solid #555;
@@ -35,25 +39,19 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    font-size: 46px;
+    gap: 8px;
+    font-size: 42px;
     transition: 0.2s;
 }
 
 .class-button:hover {
     background: #3f3f3f;
     border-color: #00d2ff;
-    transform: translateY(-5px);
+    transform: translateY(-4px);
 }
 
-.class-button b {
-    font-size: 20px;
-}
-
-.class-button span {
-    font-size: 13px;
-    color: #bbb;
-}
+.class-button b { font-size: 18px; }
+.class-button span { font-size: 12px; color: #bbb; }
 
 #game-screen {
     display: none;
@@ -62,14 +60,14 @@ body {
 /* THANH THÔNG TIN TRÊN CÙNG */
 #status {
     width: 900px;
-    margin: 15px auto 0;
-    padding: 10px 18px;
+    margin: 10px auto 0;
+    padding: 8px 16px;
     box-sizing: border-box;
     background: #282828;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 14px;
+    font-size: 13px;
     border-radius: 10px 10px 0 0;
     border: 2px solid #444;
     border-bottom: none;
@@ -117,7 +115,28 @@ body {
     top: 0;
 }
 
-/* NHÂN VẬT & QUÁI */
+/* BÓNG ĐỔ DƯỚI CHÂN THỰC THỂ */
+#player::after, .enemy-item::after, #boss::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 44px;
+    height: 12px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 50%;
+    z-index: -1;
+    filter: blur(1px);
+    transition: transform 0.2s, opacity 0.2s;
+}
+
+#boss::after {
+    width: 70px;
+    height: 16px;
+}
+
+/* NHÂN VẬT */
 #player {
     position: absolute;
     width: 80px;
@@ -128,6 +147,7 @@ body {
     z-index: 10;
     font-size: 36px;
     transform: translate(-50%, -50%);
+    transform-origin: bottom center;
 }
 
 .character-img {
@@ -136,6 +156,60 @@ body {
     object-fit: contain;
     image-rendering: pixelated;
     pointer-events: none;
+}
+
+/* ĐỘNG TÁC NHÂN VẬT & QUÁI */
+.facing-left {
+    transform: translate(-50%, -50%) scaleX(-1) !important;
+}
+
+.facing-right {
+    transform: translate(-50%, -50%) scaleX(1) !important;
+}
+
+/* Hiệu ứng thở khi đứng yên */
+.idle {
+    animation: idleBreathe 1.3s ease-in-out infinite alternate;
+}
+@keyframes idleBreathe {
+    0% { transform: translate(-50%, -50%) scale(1, 1); }
+    100% { transform: translate(-50%, -50%) scale(1.05, 0.94); }
+}
+
+/* Hiệu ứng chạy nhún quán tính */
+.running-lean {
+    animation: runSquash 0.22s infinite alternate ease-in-out;
+}
+@keyframes runSquash {
+    0% { transform: translate(-50%, -50%) skewX(-6deg) scale(0.95, 1.05); }
+    100% { transform: translate(-50%, -50%) skewX(-3deg) scale(1.05, 0.94); }
+}
+
+/* Động tác nhảy né đòn */
+.jumping {
+    animation: jumpArc 0.4s ease-out forwards;
+}
+@keyframes jumpArc {
+    0%   { transform: translate(-50%, -50%) scale(1); }
+    50%  { transform: translate(-50%, -95px) scale(1.15); }
+    100% { transform: translate(-50%, -50%) scale(1); }
+}
+.jumping::after {
+    transform: translateX(-50%) scale(0.35) !important;
+    opacity: 0.15 !important;
+}
+
+.enemy-walking {
+    animation: enemyWiggle 0.3s infinite alternate;
+}
+@keyframes enemyWiggle {
+    0% { transform: translate(-50%, -50%) rotate(-4deg); }
+    100% { transform: translate(-50%, -50%) rotate(4deg); }
+}
+
+.hit-flash {
+    filter: brightness(2.5) drop-shadow(0 0 8px red) !important;
+    transition: filter 0.1s ease;
 }
 
 .tree {
@@ -164,14 +238,6 @@ body {
     image-rendering: pixelated;
 }
 
-.enemy-hp {
-    color: white;
-    background: rgba(0, 0, 0, 0.75);
-    padding: 2px 4px;
-    font-size: 11px;
-    border-radius: 4px;
-}
-
 #boss {
     position: absolute;
     text-align: center;
@@ -189,6 +255,14 @@ body {
     background-position: center;
     image-rendering: pixelated;
     transition: transform 0.1s ease;
+}
+
+.enemy-hp {
+    color: white;
+    background: rgba(0, 0, 0, 0.75);
+    padding: 2px 4px;
+    font-size: 11px;
+    border-radius: 4px;
 }
 
 #boss-hp {
@@ -240,71 +314,54 @@ body {
     filter: drop-shadow(0 0 15px yellow) hue-rotate(90deg) !important;
     animation: shockShake 0.1s infinite alternate;
 }
-
 @keyframes shockShake {
     0% { transform: translate(-2px, 0); }
     100% { transform: translate(2px, 0); }
 }
 
-/* ========================================================
-   GIAO DIỆN KÉP: BÊN TRÁI (STATS) - BÊN PHẢI (TÚI ĐỒ)
-======================================================== */
+/* GIAO DIỆN KÉP BÊN TRÁI & PHẢI */
 .side-menu-container {
-    display: none; /* Mặc định ẩn, bật/tắt bằng phím B / C */
+    display: none;
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     z-index: 100;
-    pointer-events: none; /* Giữ xuyên thấu ở khoảng giữa để vẫn nhìn thấy nhân vật */
+    pointer-events: none;
 }
 
 .side-panel {
     position: absolute;
-    top: 20px;
-    bottom: 20px;
+    top: 15px;
+    bottom: 15px;
     background: rgba(22, 22, 26, 0.92);
     border: 2px solid #50505a;
     border-radius: 12px;
-    padding: 16px;
+    padding: 14px;
     box-sizing: border-box;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8);
-    pointer-events: auto; /* Cho phép thao tác chuột trên bảng */
+    pointer-events: auto;
 }
 
-/* BẢNG CHỈ SỐ NHÂN VẬT (BÊN TRÁI) */
-.left-panel {
-    left: 20px;
-    width: 250px;
-}
-
-/* BẢNG TÚI ĐỒ (BÊN PHẢI) */
-.right-panel {
-    right: 20px;
-    width: 290px;
-}
+.left-panel { left: 15px; width: 240px; }
+.right-panel { right: 15px; width: 280px; }
 
 .panel-header h3 {
-    margin: 0 0 10px 0;
-    font-size: 17px;
+    margin: 0 0 8px 0;
+    font-size: 16px;
     border-bottom: 1px solid #444;
-    padding-bottom: 8px;
+    padding-bottom: 6px;
     color: #00e5ff;
 }
 
-.modal-hint {
-    font-size: 11px;
-    color: #aaa;
-    margin: 4px 0 10px 0;
-}
+.modal-hint { font-size: 11px; color: #aaa; margin: 4px 0 8px 0; }
 
-/* DANH SÁCH CHỈ SỐ */
 .stats-body {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-top: 10px;
+    gap: 10px;
+    margin-top: 8px;
 }
 
 .stat-row {
@@ -312,10 +369,9 @@ body {
     justify-content: space-between;
     font-size: 13px;
     border-bottom: 1px dashed #3a3a3a;
-    padding-bottom: 5px;
+    padding-bottom: 4px;
 }
 
-/* LƯỚI TÚI ĐỒ (3 CỘT X 4 DÒNG) */
 .inventory-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -323,7 +379,7 @@ body {
 }
 
 .inv-slot {
-    height: 70px;
+    height: 68px;
     background: #2a2a2e;
     border: 2px solid #444;
     border-radius: 8px;
@@ -336,22 +392,9 @@ body {
     transition: 0.15s;
 }
 
-.inv-slot:hover {
-    border-color: #00d2ff;
-    background: #363640;
-}
-
-.inv-slot .slot-icon {
-    font-size: 24px;
-}
-
-.inv-slot .slot-name {
-    font-size: 10px;
-    color: #ddd;
-    margin-top: 2px;
-    text-align: center;
-}
-
+.inv-slot:hover { border-color: #00d2ff; background: #363640; }
+.inv-slot .slot-icon { font-size: 22px; }
+.inv-slot .slot-name { font-size: 10px; color: #ddd; margin-top: 2px; }
 .inv-slot .slot-count {
     position: absolute;
     bottom: 2px;
@@ -361,7 +404,72 @@ body {
     color: #ffd700;
 }
 
-/* BẢNG DEBUG TOOL */
+/* NÚT BẤM ẢO CẢM ỨNG CHO MOBILE */
+#touch-controls {
+    display: none;
+    width: 100%;
+    max-width: 900px;
+    margin: 8px auto 0;
+    padding: 0 15px;
+    box-sizing: border-box;
+    justify-content: space-between;
+    align-items: center;
+    touch-action: none;
+}
+
+@media (pointer: coarse), (max-width: 950px) {
+    #status, #viewport {
+        width: 100vw !important;
+        border-left: none;
+        border-right: none;
+    }
+    #viewport { height: 55vh !important; }
+    #touch-controls { display: flex; }
+    .side-panel { width: 46% !important; }
+}
+
+.touch-btn {
+    background: rgba(255, 255, 255, 0.18);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    color: white;
+    font-size: 22px;
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    outline: none;
+}
+
+.touch-btn:active {
+    background: rgba(0, 229, 255, 0.5);
+    transform: scale(0.92);
+}
+
+.touch-dpad {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+.dpad-middle { display: flex; gap: 10px; }
+
+.touch-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.btn-atk {
+    width: 66px;
+    height: 66px;
+    font-size: 28px;
+    background: rgba(255, 60, 60, 0.35);
+    border-color: rgba(255, 80, 80, 0.7);
+}
+.btn-ult { background: rgba(255, 215, 0, 0.3); }
+
+/* DEBUG PANEL */
 .debug-panel {
     display: none;
     position: fixed;
@@ -374,41 +482,18 @@ body {
     padding: 12px;
     z-index: 9999;
 }
-
-.debug-panel h4 {
-    margin: 0 0 10px 0;
-    font-size: 13px;
-    color: #00e5ff;
-    text-align: center;
-}
-
-.debug-btn-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
+.debug-panel h4 { margin: 0 0 10px 0; font-size: 13px; color: #00e5ff; text-align: center; }
+.debug-btn-group { display: flex; flex-direction: column; gap: 6px; }
 .debug-btn-group button {
-    background: #2a2a2a;
-    border: 1px solid #555;
-    color: #fff;
-    padding: 6px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 11px;
+    background: #2a2a2a; border: 1px solid #555; color: #fff;
+    padding: 6px; border-radius: 5px; cursor: pointer; font-size: 11px;
     text-align: left;
-    transition: 0.15s;
 }
-
-.debug-btn-group button:hover {
-    background: #00e5ff;
-    color: #000;
-    font-weight: bold;
-}
+.debug-btn-group button:hover { background: #00e5ff; color: #000; font-weight: bold; }
 
 #message {
     text-align: center;
     font-size: 13px;
-    margin-top: 12px;
+    margin-top: 10px;
     color: #aaa;
 }

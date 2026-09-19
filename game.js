@@ -1,482 +1,347 @@
-// --- KÍCH THƯỚC MAP VÀ VIEWPORT ---
-const MAP_WIDTH = 2400;
-const MAP_HEIGHT = 1500;
-const VIEWPORT_WIDTH = 900;
-const VIEWPORT_HEIGHT = 520;
+// --- CẤU HÌNH HỆ THỐNG & HELPER ---
+const $ = id => document.getElementById(id);
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-// --- THÔNG SỐ NGƯỜI CHƠI ---
-let playerClass = "";
-let playerPos = { x: 450, y: 350 };
-let playerSpeed = 8;
-let playerDamage = 15;
-let playerHP = 100;
-let playerMaxHP = 100;
-let playerExp = 0;
-let expNeeded = 70;
-let playerLevel = 1;
-let attackRange = 90;
-let isRanged = false;
-let projectiles = [];
-let scientistEnergy = 0;
-const maxEnergy = 100;
+const MAP = { w: 2400, h: 1500, vw: 900, vh: 520 };
+const keys = {}, projectiles = [];
+let isSideMenuOpen = false, isGodMode = false;
 
-// --- TÚI ĐỒ (INVENTORY) & GIAO DIỆN ---
-const MAX_SLOTS = 12;
-let isSideMenuOpen = false;
+// Trạng thái chuyển động
+let isJumping = false;
+let isMoving = false;
+let facingDirection = "right";
+
+// Dữ liệu nghề nghiệp
+const CLASSES = {
+    warrior:   { name: "Kiếm sĩ", icon: "⚔️", dmg: 22, spd: 8,  rng: 100, hp: 120, ranged: false },
+    archer:    { name: "Cung thủ", icon: "🏹", dmg: 12, spd: 10, rng: 320, hp: 100, ranged: true },
+    mage:      { name: "Pháp sư",  icon: "🔮", dmg: 18, spd: 7,  rng: 260, hp: 100, ranged: true, pIcon: "✨" },
+    scientist: { name: "Nhà khoa học", icon: '<img src="scientist.png" class="character-img" alt="Scientist">', dmg: 20, spd: 8, rng: 230, hp: 100, ranged: true, pIcon: "⚡" }
+};
+
+// Thực thể người chơi & Boss
+let player = { classKey: "", x: 450, y: 350, spd: 8, dmg: 15, hp: 100, maxHp: 100, exp: 0, expNeed: 70, lvl: 1, rng: 90, ranged: false, energy: 0 };
+let boss = { x: 900, y: 500, hp: 250, maxHp: 250, spd: 1.4, dmg: 18, cd: 0, isBoss: true };
+
+// Túi đồ & Quái
 let inventory = [
     { id: "hp_pot", name: "Bình Máu", icon: "🧪", count: 5, type: "potion", heal: 35 },
     { id: "iron_sword", name: "Đoản Kiếm", icon: "🗡️", count: 1, type: "weapon" }
 ];
-
-// --- DEBUG MODE FLAGS ---
-let isGodMode = false;
-
-// --- BOSS ORC ---
-let boss = {
-    x: 1800,
-    y: 800,
-    hp: 250,
-    maxHp: 250,
-    speed: 1.4,
-    damage: 18,
-    cooldown: 0
-};
-
-// --- DANH SÁCH 5 GOBLIN PHÂN BỐ RỘNG ---
 let enemies = [
-    { id: 1, x: 300,  y: 200,  hp: 35, speed: 2.1, damage: 6, cooldown: 0 },
-    { id: 2, x: 900,  y: 300,  hp: 35, speed: 2.3, damage: 6, cooldown: 0 },
-    { id: 3, x: 600,  y: 1100, hp: 35, speed: 1.9, damage: 6, cooldown: 0 },
-    { id: 4, x: 1600, y: 400,  hp: 35, speed: 2.2, damage: 6, cooldown: 0 },
-    { id: 5, x: 1400, y: 1200, hp: 35, speed: 2.0, damage: 6, cooldown: 0 }
-];
+    { id: 1, x: 300, y: 200 }, { id: 2, x: 800, y: 250 }, { id: 3, x: 500, y: 800 },
+    { id: 4, x: 1300, y: 400 }, { id: 5, x: 1100, y: 800 }
+].map(e => ({ ...e, hp: 35, maxHp: 35, spd: 2.0, dmg: 6, cd: 0 }));
 
-const keys = {};
-
-// --- 1. CHỌN CLASS VÀ BẮT ĐẦU ---
+// --- 1. CHỌN CLASS & KHỞI TẠO GAME ---
 document.querySelectorAll(".class-button").forEach(btn => {
-    btn.addEventListener("click", () => {
-        playerClass = btn.getAttribute("data-class");
+    btn.onclick = () => {
+        const c = CLASSES[player.classKey = btn.dataset.class];
+        Object.assign(player, { dmg: c.dmg, spd: c.spd, rng: c.rng, maxHp: c.hp, hp: c.hp, ranged: c.ranged });
         
-        if (playerClass === "warrior") {
-            document.getElementById("player").innerText = "⚔️";
-            document.getElementById("class-name").innerText = "Kiếm sĩ";
-            playerDamage = 22;
-            playerSpeed = 8;
-            attackRange = 100;
-            playerMaxHP = 120;
-            playerHP = 120;
-            isRanged = false;
-        } else if (playerClass === "archer") {
-            document.getElementById("player").innerText = "🏹";
-            document.getElementById("class-name").innerText = "Cung thủ";
-            playerDamage = 12;
-            playerSpeed = 10;
-            attackRange = 320;
-            isRanged = true;
-        } else if (playerClass === "mage") {
-            document.getElementById("player").innerText = "🔮";
-            document.getElementById("class-name").innerText = "Pháp sư";
-            playerDamage = 18;
-            playerSpeed = 7;
-            attackRange = 260;
-            isRanged = true;
-        } else if (playerClass === "scientist") {
-            document.getElementById("player").innerHTML = '<img src="scientist.png" class="character-img" alt="Scientist">';
-            document.getElementById("class-name").innerText = "Nhà khoa học";
-            playerDamage = 20;
-            playerSpeed = 8;
-            attackRange = 230;
-            isRanged = true;
-        }
-
-        updateHUD();
-        document.getElementById("class-screen").style.display = "none";
-        document.getElementById("game-screen").style.display = "block";
+        $("player").innerHTML = c.icon;
+        $("class-name").innerText = c.name;
+        $("class-screen").style.display = "none";
+        $("game-screen").style.display = "block";
 
         initEnemies();
-        setupUIEvents();
+        updateHUD();
+        setupTouchControls();
         startGameLoops();
-    });
+    };
 });
 
-function updateHUD() {
-    document.getElementById("damage").innerText = playerDamage;
-    document.getElementById("player-hp").innerText = playerHP;
-    document.getElementById("player-max-hp").innerText = playerMaxHP;
-    document.getElementById("level").innerText = playerLevel;
-    document.getElementById("exp").innerText = playerExp;
-    document.getElementById("exp-needed").innerText = expNeeded;
+function initEnemies() {
+    $("enemies-container").innerHTML = enemies.map(e => 
+        `<div id="enemy-${e.id}" class="enemy-item" style="left:${e.x}px;top:${e.y}px">
+            <div class="enemy-sprite"></div>
+            <div class="enemy-hp" id="hp-${e.id}">${e.hp}/${e.hp}</div>
+        </div>`
+    ).join("");
+}
 
-    // Cập nhật cả bảng bên trái nếu đang mở
+function updateHUD() {
+    $("damage").innerText = player.dmg;
+    $("player-hp").innerText = player.hp;
+    $("player-max-hp").innerText = player.maxHp;
+    $("level").innerText = player.lvl;
+    $("exp").innerText = player.exp;
+    $("exp-needed").innerText = player.expNeed;
+
     if (isSideMenuOpen) {
-        document.getElementById("stat-class").innerText = document.getElementById("class-name").innerText;
-        document.getElementById("stat-level").innerText = playerLevel;
-        document.getElementById("stat-hp").innerText = `${playerHP} / ${playerMaxHP}`;
-        document.getElementById("stat-atk").innerText = playerDamage;
-        document.getElementById("stat-range").innerText = `${attackRange} px`;
-        document.getElementById("stat-speed").innerText = playerSpeed;
-        document.getElementById("stat-exp").innerText = `${playerExp} / ${expNeeded}`;
+        $("stat-class").innerText = CLASSES[player.classKey]?.name || "---";
+        $("stat-level").innerText = player.lvl;
+        $("stat-hp").innerText = `${player.hp} /${player.maxHp}`;
+        $("stat-atk").innerText = player.dmg;
+        $("stat-range").innerText = `${player.rng} px`;
+        $("stat-speed").innerText = player.spd;
+        $("stat-exp").innerText = `${player.exp} /${player.expNeed}`;
     }
 }
 
-// --- 2. VẼ 5 GOBLIN RA WORLD ---
-function initEnemies() {
-    const container = document.getElementById("enemies-container");
-    container.innerHTML = "";
-    enemies.forEach(en => {
-        const el = document.createElement("div");
-        el.id = `enemy-${en.id}`;
-        el.className = "enemy-item";
-        el.style.left = `${en.x}px`;
-        el.style.top = `${en.y}px`;
-        el.innerHTML = `
-            <div class="enemy-sprite"></div>
-            <div class="enemy-hp" id="hp-${en.id}">${en.hp}/${en.hp}</div>
-        `;
-        container.appendChild(el);
-    });
-}
-
-// --- 3. BẬT/TẮT ĐỒNG THỜI BẢNG TRÁI & PHẢI ---
-function setupUIEvents() {
-    document.getElementById("btn-toggle-ui").onclick = toggleDualMenu;
-}
+// --- 2. QUẢN LÝ GIAO DIỆN TÚI ĐỒ (INVENTORY) ---
+$("btn-toggle-ui").onclick = toggleDualMenu;
 
 function toggleDualMenu() {
-    isSideMenuOpen = !isSideMenuOpen;
-    document.getElementById("side-menu-container").style.display = isSideMenuOpen ? "block" : "none";
-    if (isSideMenuOpen) {
-        updateHUD();
-        renderInventory();
-    }
+    $("side-menu-container").style.display = (isSideMenuOpen = !isSideMenuOpen) ? "block" : "none";
+    if (isSideMenuOpen) { updateHUD(); renderInventory(); }
 }
 
 function renderInventory() {
-    const grid = document.getElementById("inventory-grid");
-    grid.innerHTML = "";
+    $("inventory-grid").innerHTML = Array.from({ length: 12 }, (_, i) => {
+        const it = inventory[i];
+        return `<div class="inv-slot" onclick="useItem(${i})">
+            ${it ? `<div class="slot-icon">${it.icon}</div><div class="slot-name">${it.name}</div><div class="slot-count">x${it.count}</div>` : ""}
+        </div>`;
+    }).join("");
+}
 
-    for (let i = 0; i < MAX_SLOTS; i++) {
-        const item = inventory[i];
-        const slot = document.createElement("div");
-        slot.className = "inv-slot";
-
-        if (item) {
-            slot.innerHTML = `
-                <div class="slot-icon">${item.icon}</div>
-                <div class="slot-name">${item.name}</div>
-                <div class="slot-count">x${item.count}</div>
-            `;
-            slot.onclick = () => useItem(item, i);
-        }
-        grid.appendChild(slot);
+function useItem(idx) {
+    const it = inventory[idx];
+    if (it?.type === "potion" && player.hp < player.maxHp) {
+        player.hp = Math.min(player.maxHp, player.hp + it.heal);
+        if (--it.count <= 0) inventory.splice(idx, 1);
+        updateHUD(); renderInventory();
     }
 }
 
-function useItem(item, index) {
-    if (item.type === "potion") {
-        if (playerHP >= playerMaxHP) return;
-        playerHP = Math.min(playerMaxHP, playerHP + item.heal);
-        item.count--;
-        if (item.count <= 0) {
-            inventory.splice(index, 1);
-        }
-        updateHUD();
-        renderInventory();
-    }
-}
-
-// --- 4. BẮT PHÍM BÀN PHÍM ---
-window.addEventListener("keydown", (e) => {
+// --- 3. ĐIỀU KHIỂN & HÀNH ĐỘNG ---
+window.onkeydown = e => {
     const k = e.key.toLowerCase();
     keys[k] = true;
 
+    if (k === "j" && !isJumping) jump();
     if (e.code === "Space") attack();
-    if (k === "e" && playerClass === "scientist") castLightningDragon();
-    
-    // Phím B hoặc C để bật/tắt cùng lúc túi đồ và chỉ số
-    if (k === "b" || k === "c" || k === "i") toggleDualMenu();
+    if (k === "e" && player.classKey === "scientist") castLightningDragon();
+    if (["b", "c", "i"].includes(k)) toggleDualMenu();
+    if (["`", "~"].includes(e.key)) $("debug-panel").style.display = $("debug-panel").style.display === "block" ? "none" : "block";
+};
+window.onkeyup = e => keys[e.key.toLowerCase()] = false;
 
-    // Phím ~ hoặc ` để bật bảng Debug
-    if (e.key === "`" || e.key === "~") {
-        const panel = document.getElementById("debug-panel");
-        panel.style.display = panel.style.display === "block" ? "none" : "block";
-    }
-});
+function jump() {
+    isJumping = true;
+    const playerEl = $("player");
+    playerEl.classList.add("jumping");
 
-window.addEventListener("keyup", (e) => {
-    keys[e.key.toLowerCase()] = false;
-});
+    setTimeout(() => {
+        playerEl.classList.remove("jumping");
+        isJumping = false;
+    }, 400);
+}
 
-// --- 5. TẤN CÔNG (SPACE) ---
 function attack() {
-    if (isRanged) {
-        let target = null;
-        let minDist = 9999;
-
-        enemies.concat(boss.hp > 0 ? [boss] : []).forEach(t => {
-            if (t.hp > 0) {
-                let d = Math.hypot(playerPos.x - t.x, playerPos.y - t.y);
-                if (d < minDist && d <= attackRange) {
-                    minDist = d;
-                    target = t;
-                }
-            }
-        });
+    const targets = [...enemies, ...(boss.hp > 0 ? [boss] : [])].filter(t => t.hp > 0);
+    if (player.ranged) {
+        const target = targets.reduce((best, t) => {
+            const d = dist(player, t);
+            return (d <= player.rng && (!best || d < best.d)) ? { t, d } : best;
+        }, null)?.t;
 
         if (target) {
-            let dx = target.x - playerPos.x;
-            let dy = target.y - playerPos.y;
-            let dist = Math.hypot(dx, dy);
+            const d = dist(player, target);
             projectiles.push({
-                x: playerPos.x,
-                y: playerPos.y,
-                vx: (dx / dist) * 14,
-                vy: (dy / dist) * 14,
-                damage: playerDamage,
-                icon: playerClass === "scientist" ? "⚡" : (playerClass === "mage" ? "✨" : "")
+                x: player.x, y: player.y,
+                vx: ((target.x - player.x) / d) * 14,
+                vy: ((target.y - player.y) / d) * 14,
+                damage: player.dmg, icon: CLASSES[player.classKey]?.pIcon || ""
             });
         }
     } else {
-        enemies.forEach(en => {
-            if (en.hp > 0 && Math.hypot(playerPos.x - en.x, playerPos.y - en.y) <= attackRange) {
-                hitEnemy(en, playerDamage);
-            }
-        });
+        targets.filter(t => dist(player, t) <= player.rng).forEach(t => applyDamage(t, player.dmg));
+    }
+}
 
-        if (boss.hp > 0 && Math.hypot(playerPos.x - boss.x, playerPos.y - boss.y) <= attackRange) {
-            hitBoss(playerDamage);
+function applyDamage(target, dmg) {
+    target.hp = Math.max(0, target.hp - dmg);
+    
+    // Chớp đỏ khi nhận đòn
+    const targetEl = target.isBoss ? $("boss-character") : $(`enemy-${target.id}`);
+    if (targetEl) {
+        targetEl.classList.add("hit-flash");
+        setTimeout(() => targetEl.classList.remove("hit-flash"), 120);
+    }
+
+    // Đẩy lùi nhẹ quái thường
+    if (!target.isBoss) {
+        const d = dist(player, target) || 1;
+        target.x += ((target.x - player.x) / d) * 16;
+        target.y += ((target.y - player.y) / d) * 16;
+    }
+
+    // Tích nộ nhà khoa học
+    if (player.classKey === "scientist" && (player.energy < 100 || isGodMode)) {
+        player.energy = Math.min(100, player.energy + (target.isBoss ? 15 : 10));
+        $("scientist-ult").innerText = player.energy;
+    }
+
+    if (target.isBoss) {
+        $("boss-hp").innerText = `BOSS HP: ${target.hp}/${target.maxHp}`;
+        if (target.hp <= 0) {
+            $("boss").style.display = "none";
+            addExp(80);
+            setTimeout(() => alert("CHIẾN THẮNG! Bạn đã tiêu diệt Boss Orc!"), 100);
+        }
+    } else {
+        $(`hp-${target.id}`).innerText = `${target.hp}/${target.maxHp}`;
+        if (target.hp <= 0) {
+            const el = $(`enemy-${target.id}`);
+            if (el) el.style.display = "none";
+            addExp(18);
+
+            if (Math.random() < 0.4) {
+                let pot = inventory.find(i => i.id === "hp_pot");
+                pot ? pot.count++ : inventory.push({ id: "hp_pot", name: "Bình Máu", icon: "🧪", count: 1, type: "potion", heal: 35 });
+                if (isSideMenuOpen) renderInventory();
+            }
+
+            setTimeout(() => {
+                target.hp = target.maxHp;
+                target.x = clamp(player.x + (Math.random() - 0.5) * 800, 80, MAP.w - 80);
+                target.y = clamp(player.y + (Math.random() - 0.5) * 600, 80, MAP.h - 80);
+                if (el) Object.assign(el.style, { left: `${target.x}px`, top: `${target.y}px`, display: "block" });
+                $(`hp-${target.id}`).innerText = `${target.maxHp}/${target.maxHp}`;
+            }, 3500);
         }
     }
 }
 
-function hitEnemy(en, dmg) {
-    en.hp = Math.max(0, en.hp - dmg);
-    const hpEl = document.getElementById(`hp-${en.id}`);
-    if (hpEl) hpEl.innerText = `${en.hp}/35`;
-
-    if (playerClass === "scientist" && (scientistEnergy < maxEnergy || isGodMode)) {
-        scientistEnergy = Math.min(maxEnergy, scientistEnergy + 10);
-        const ultEl = document.getElementById("scientist-ult");
-        if (ultEl) ultEl.innerText = scientistEnergy;
-    }
-
-    if (en.hp <= 0) {
-        const el = document.getElementById(`enemy-${en.id}`);
-        if (el) el.style.display = "none";
-        addExp(18);
-
-        // Tỷ lệ rơi vật phẩm bình máu
-        if (Math.random() < 0.4) {
-            let pot = inventory.find(i => i.id === "hp_pot");
-            if (pot) pot.count++;
-            else inventory.push({ id: "hp_pot", name: "Bình Máu", icon: "🧪", count: 1, type: "potion", heal: 35 });
-            if (isSideMenuOpen) renderInventory();
-        }
-
-        setTimeout(() => {
-            en.hp = 35;
-            en.x = Math.max(80, Math.min(MAP_WIDTH - 80, playerPos.x + (Math.random() - 0.5) * 800));
-            en.y = Math.max(80, Math.min(MAP_HEIGHT - 80, playerPos.y + (Math.random() - 0.5) * 600));
-
-            if (el) {
-                el.style.left = `${en.x}px`;
-                el.style.top = `${en.y}px`;
-                el.style.display = "block";
-            }
-            if (hpEl) hpEl.innerText = "35/35";
-        }, 3500);
-    }
-}
-
-function hitBoss(dmg) {
-    boss.hp = Math.max(0, boss.hp - dmg);
-    const bossHpEl = document.getElementById("boss-hp");
-    if (bossHpEl) bossHpEl.innerText = `BOSS HP: ${boss.hp}/${boss.maxHp}`;
-
-    if (playerClass === "scientist" && (scientistEnergy < maxEnergy || isGodMode)) {
-        scientistEnergy = Math.min(maxEnergy, scientistEnergy + 15);
-        const ultEl = document.getElementById("scientist-ult");
-        if (ultEl) ultEl.innerText = scientistEnergy;
-    }
-
-    if (boss.hp <= 0) {
-        const bossEl = document.getElementById("boss");
-        if (bossEl) bossEl.style.display = "none";
-        addExp(80);
-        setTimeout(() => alert("CHIẾN THẮNG! Bạn đã hạ gục Boss Orc!"), 100);
-    }
-}
-
-// --- CHIÊU NỘ: RỒNG SÉT (PHÍM E) ---
 function castLightningDragon() {
-    if (!isGodMode && scientistEnergy < maxEnergy) return;
-
-    if (!isGodMode) {
-        scientistEnergy = 0;
-        const ultEl = document.getElementById("scientist-ult");
-        if (ultEl) ultEl.innerText = scientistEnergy;
-    }
+    if (!isGodMode && player.energy < 100) return;
+    if (!isGodMode) $("scientist-ult").innerText = (player.energy = 0);
 
     const dragon = document.createElement("div");
     dragon.className = "lightning-dragon";
     dragon.innerHTML = "⚡🐉⚡";
-    dragon.style.top = `${playerPos.y}px`;
-    document.getElementById("world").appendChild(dragon);
+    dragon.style.top = `${player.y}px`;
+    $("world").appendChild(dragon);
 
-    enemies.forEach(en => {
-        if (en.hp > 0) hitEnemy(en, 70);
-    });
-
+    enemies.filter(e => e.hp > 0).forEach(e => applyDamage(e, 70));
     if (boss.hp > 0) {
-        hitBoss(90);
-        let origSpeed = boss.speed;
-        boss.speed = 0;
-        const bossChar = document.getElementById("boss-character");
-        if (bossChar) bossChar.classList.add("electrocuted");
-
-        setTimeout(() => {
-            boss.speed = origSpeed;
-            if (bossChar) bossChar.classList.remove("electrocuted");
-        }, 2500);
+        applyDamage(boss, 90);
+        const prevSpd = boss.spd; boss.spd = 0;
+        $("boss-character")?.classList.add("electrocuted");
+        setTimeout(() => { boss.spd = prevSpd; $("boss-character")?.classList.remove("electrocuted"); }, 2500);
     }
-
     setTimeout(() => dragon.remove(), 1000);
 }
 
 function addExp(amount) {
-    playerExp += amount;
-    if (playerExp >= expNeeded) {
-        playerExp -= expNeeded;
-        playerLevel++;
-        playerDamage += 5;
-        playerMaxHP += 15;
-        playerHP = playerMaxHP;
-        expNeeded += 35;
+    if ((player.exp += amount) >= player.expNeed) {
+        player.exp -= player.expNeed;
+        player.lvl++;
+        player.dmg += 5;
+        player.hp = (player.maxHp += 15);
+        player.expNeed += 35;
     }
     updateHUD();
 }
 
 function takePlayerDamage(dmg) {
-    if (isGodMode) return;
-    playerHP = Math.max(0, playerHP - dmg);
-    updateHUD();
-    if (playerHP <= 0) {
+    if (isGodMode || isJumping) return;
+    if ((player.hp = Math.max(0, player.hp - dmg)) <= 0) {
         alert("Bạn đã hi sinh! Nhấn F5 để chơi lại.");
         location.reload();
     }
+    updateHUD();
 }
 
-// --- 6. HỆ THỐNG CAMERA SCROLLING ---
-function updateCamera() {
-    let camX = playerPos.x - VIEWPORT_WIDTH / 2;
-    let camY = playerPos.y - VIEWPORT_HEIGHT / 2;
-
-    camX = Math.max(0, Math.min(camX, MAP_WIDTH - VIEWPORT_WIDTH));
-    camY = Math.max(0, Math.min(camY, MAP_HEIGHT - VIEWPORT_HEIGHT));
-
-    const worldEl = document.getElementById("world");
-    worldEl.style.transform = `translate(${-camX}px, ${-camY}px)`;
-}
-
-// --- 7. VÒNG LẶP CHÍNH CỦA GAME (GAME LOOP) ---
+// --- 4. GAME LOOP & CHUYỂN ĐỘNG ---
 function startGameLoops() {
     setInterval(() => {
-        if (keys["w"] && playerPos.y > 40) playerPos.y -= playerSpeed;
-        if (keys["s"] && playerPos.y < MAP_HEIGHT - 40) playerPos.y += playerSpeed;
-        if (keys["a"] && playerPos.x > 40) playerPos.x -= playerSpeed;
-        if (keys["d"] && playerPos.x < MAP_WIDTH - 40) playerPos.x += playerSpeed;
+        const currentSpeed = keys["shift"] ? player.spd * 1.6 : player.spd;
 
-        const playerEl = document.getElementById("player");
-        playerEl.style.left = `${playerPos.x}px`;
-        playerEl.style.top = `${playerPos.y}px`;
+        let dx = 0;
+        let dy = 0;
+        if (keys["w"]) dy -= 1;
+        if (keys["s"]) dy += 1;
+        if (keys["a"]) { dx -= 1; facingDirection = "left"; }
+        if (keys["d"]) { dx += 1; facingDirection = "right"; }
 
-        updateCamera();
+        if (dx !== 0 && dy !== 0) {
+            dx *= 0.7071;
+            dy *= 0.7071;
+        }
 
-        // AI Goblins
+        player.x = clamp(player.x + dx * currentSpeed, 40, MAP.w - 40);
+        player.y = clamp(player.y + dy * currentSpeed, 40, MAP.h - 40);
+
+        const playerEl = $("player");
+        playerEl.style.left = `${player.x}px`;
+        playerEl.style.top = `${player.y}px`;
+
+        isMoving = (dx !== 0 || dy !== 0);
+        playerEl.classList.toggle("running-lean", isMoving && !isJumping);
+        playerEl.classList.toggle("idle", !isMoving && !isJumping);
+        playerEl.classList.toggle("facing-left", facingDirection === "left");
+        playerEl.classList.toggle("facing-right", facingDirection === "right");
+
+        // Camera cuộn theo Player
+        const camX = clamp(player.x - MAP.vw / 2, 0, MAP.w - MAP.vw);
+        const camY = clamp(player.y - MAP.vh / 2, 0, MAP.h - MAP.vh);
+        $("world").style.transform = `translate(${-camX}px, ${-camY}px)`;
+
+        // AI Quái thường
         enemies.forEach(en => {
             if (en.hp <= 0) return;
+            const d = dist(player, en);
+            const el = $(`enemy-${en.id}`);
 
-            let dx = playerPos.x - en.x;
-            let dy = playerPos.y - en.y;
-            let dist = Math.hypot(dx, dy);
+            if (d < 700 && d > 30) {
+                const moveX = ((player.x - en.x) / d) * en.spd;
+                const moveY = ((player.y - en.y) / d) * en.spd;
+                en.x += moveX;
+                en.y += moveY;
 
-            if (dist < 700 && dist > 30) {
-                en.x += (dx / dist) * en.speed;
-                en.y += (dy / dist) * en.speed;
+                if (el) {
+                    el.classList.add("enemy-walking");
+                    el.classList.toggle("facing-left", moveX < 0);
+                    el.classList.toggle("facing-right", moveX >= 0);
+                }
+            } else {
+                if (el) el.classList.remove("enemy-walking");
             }
 
-            const el = document.getElementById(`enemy-${en.id}`);
-            if (el) {
-                el.style.left = `${en.x}px`;
-                el.style.top = `${en.y}px`;
-            }
+            if (el) Object.assign(el.style, { left: `${en.x}px`, top: `${en.y}px` });
 
-            if (en.cooldown > 0) en.cooldown -= 50;
-            if (dist < 38 && en.cooldown <= 0) {
-                takePlayerDamage(en.damage);
-                en.cooldown = 1000;
+            if (en.cd > 0) en.cd -= 50;
+            if (d < 38 && en.cd <= 0) { 
+                takePlayerDamage(en.dmg); 
+                en.cd = 1000; 
             }
         });
 
         // AI Boss Orc
         if (boss.hp > 0) {
-            let bdx = playerPos.x - boss.x;
-            let bdy = playerPos.y - boss.y;
-            let bDist = Math.hypot(bdx, bdy);
-
-            if (bDist < 900 && bDist > 55) {
-                boss.x += (bdx / bDist) * boss.speed;
-                boss.y += (bdy / bDist) * boss.speed;
+            const d = dist(player, boss);
+            if (d < 900 && d > 55) {
+                boss.x += ((player.x - boss.x) / d) * boss.spd;
+                boss.y += ((player.y - boss.y) / d) * boss.spd;
             }
+            Object.assign($("boss").style, { left: `${boss.x}px`, top: `${boss.y}px` });
 
-            const bossEl = document.getElementById("boss");
-            const bossChar = document.getElementById("boss-character");
-            if (bossEl) {
-                bossEl.style.left = `${boss.x}px`;
-                bossEl.style.top = `${boss.y}px`;
-            }
-
-            if (boss.cooldown > 0) boss.cooldown -= 50;
-            if (bDist < 75 && boss.cooldown <= 0) {
-                if (bossChar) bossChar.classList.add("boss-attack");
-                takePlayerDamage(boss.damage);
-                boss.cooldown = 1400;
-
-                setTimeout(() => {
-                    if (bossChar) bossChar.classList.remove("boss-attack");
-                }, 300);
+            if (boss.cd > 0) boss.cd -= 50;
+            if (d < 75 && boss.cd <= 0) {
+                const bChar = $("boss-character");
+                bChar?.classList.add("boss-attack");
+                takePlayerDamage(boss.dmg);
+                boss.cd = 1400;
+                setTimeout(() => bChar?.classList.remove("boss-attack"), 300);
             }
         }
 
-        // Quản lý đường bay của đạn
-        const projContainer = document.getElementById("projectiles-container");
+        // Quản lý đạn
+        const container = $("projectiles-container");
         for (let i = projectiles.length - 1; i >= 0; i--) {
-            let p = projectiles[i];
-            p.x += p.vx;
-            p.y += p.vy;
+            const p = projectiles[i];
+            p.x += p.vx; p.y += p.vy;
 
-            if (p.x < 0 || p.x > MAP_WIDTH || p.y < 0 || p.y > MAP_HEIGHT) {
-                if (p.el) p.el.remove();
-                projectiles.splice(i, 1);
-                continue;
-            }
+            const hitTarget = [...enemies, ...(boss.hp > 0 ? [boss] : [])].find(t => t.hp > 0 && dist(p, t) < (t.isBoss ? 42 : 26));
+            const outOfBounds = p.x < 0 || p.x > MAP.w || p.y < 0 || p.y > MAP.h;
 
-            let hit = false;
-            enemies.forEach(en => {
-                if (!hit && en.hp > 0 && Math.hypot(p.x - en.x, p.y - en.y) < 26) {
-                    hitEnemy(en, p.damage);
-                    hit = true;
-                }
-            });
-
-            if (!hit && boss.hp > 0 && Math.hypot(p.x - boss.x, p.y - boss.y) < 42) {
-                hitBoss(p.damage);
-                hit = true;
-            }
-
-            if (hit) {
-                if (p.el) p.el.remove();
+            if (hitTarget || outOfBounds) {
+                if (hitTarget) applyDamage(hitTarget, p.damage);
+                p.el?.remove();
                 projectiles.splice(i, 1);
                 continue;
             }
@@ -484,65 +349,57 @@ function startGameLoops() {
             if (!p.el) {
                 p.el = document.createElement("div");
                 p.el.className = "projectile";
-                if (p.icon) p.el.innerText = p.icon;
-                projContainer.appendChild(p.el);
+                p.el.innerText = p.icon;
+                container.appendChild(p.el);
             }
-            p.el.style.left = `${p.x}px`;
-            p.el.style.top = `${p.y}px`;
+            Object.assign(p.el.style, { left: `${p.x}px`, top: `${p.y}px` });
         }
     }, 50);
 }
 
-// --- 8. CÁC HÀM HỖ TRỢ DEBUG / GOD MODE ---
-function debugFullEnergy() {
-    scientistEnergy = maxEnergy;
-    const ultEl = document.getElementById("scientist-ult");
-    if (ultEl) ultEl.innerText = scientistEnergy;
+// --- 5. NÚT CẢM ỨNG ĐIỆN THOẠI ---
+function setupTouchControls() {
+    document.querySelectorAll(".touch-dpad .touch-btn").forEach(btn => {
+        const k = btn.dataset.key;
+        btn.addEventListener("touchstart", e => { e.preventDefault(); keys[k] = true; }, { passive: false });
+        btn.addEventListener("touchend", e => { e.preventDefault(); keys[k] = false; }, { passive: false });
+    });
+
+    document.querySelectorAll(".touch-actions .touch-btn").forEach(btn => {
+        const act = btn.dataset.action;
+        btn.addEventListener("touchstart", e => {
+            e.preventDefault();
+            if (act === "atk") attack();
+            if (act === "jump" && !isJumping) jump();
+            if (act === "ult" && player.classKey === "scientist") castLightningDragon();
+        }, { passive: false });
+    });
 }
+
+// --- 6. CÔNG CỤ DEBUG / GOD MODE ---
+function debugFullEnergy() { $("scientist-ult").innerText = (player.energy = 100); }
+function debugLevelUp() { addExp(player.expNeed - player.exp); }
+function debugKillAllEnemies() { enemies.filter(e => e.hp > 0).forEach(e => applyDamage(e, 9999)); }
 
 function debugInfiniteMode() {
     isGodMode = !isGodMode;
-    const statusEl = document.getElementById("debug-godmode-status");
-    if (isGodMode) {
-        statusEl.innerText = "BẬT (Bất tử + Xả chiêu liên tục)";
-        statusEl.style.color = "#00ff66";
-        playerHP = playerMaxHP = 99999;
-        playerDamage = 999;
-    } else {
-        statusEl.innerText = "TẮT";
-        statusEl.style.color = "red";
-        playerHP = playerMaxHP = 100;
-        playerDamage = 20;
-    }
+    $("debug-godmode-status").innerText = isGodMode ? "BẬT (Bất tử + Vô hạn nộ)" : "TẮT";
+    $("debug-godmode-status").style.color = isGodMode ? "#00ff66" : "red";
+    player.hp = player.maxHp = isGodMode ? 99999 : 100;
+    player.dmg = isGodMode ? 999 : (CLASSES[player.classKey]?.dmg || 15);
     updateHUD();
-}
-
-function debugLevelUp() {
-    addExp(expNeeded - playerExp);
 }
 
 function debugSpawnItems() {
     let pot = inventory.find(i => i.id === "hp_pot");
-    if (pot) {
-        pot.count += 10;
-    } else {
-        inventory.push({ id: "hp_pot", name: "Bình Máu", icon: "🧪", count: 10, type: "potion", heal: 35 });
-    }
+    pot ? pot.count += 10 : inventory.push({ id: "hp_pot", name: "Bình Máu", icon: "🧪", count: 10, type: "potion", heal: 35 });
     if (isSideMenuOpen) renderInventory();
-}
-
-function debugKillAllEnemies() {
-    enemies.forEach(en => {
-        if (en.hp > 0) hitEnemy(en, 9999);
-    });
 }
 
 function debugSpawnBoss() {
     boss.hp = boss.maxHp;
-    boss.x = 1800;
-    boss.y = 800;
-    const bossEl = document.getElementById("boss");
-    const bossHpEl = document.getElementById("boss-hp");
-    if (bossEl) bossEl.style.display = "block";
-    if (bossHpEl) bossHpEl.innerText = `BOSS HP: ${boss.hp}/${boss.maxHp}`;
+    boss.x = player.x + 180;
+    boss.y = player.y;
+    $("boss").style.display = "block";
+    $("boss-hp").innerText = `BOSS HP: ${boss.hp}/${boss.maxHp}`;
 }
