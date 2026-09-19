@@ -16,7 +16,7 @@
             <button class="class-button" data-class="warrior">
                 ⚔️
                 <b>Kiếm sĩ</b>
-                <span>Đánh gần - Damage cao</span>
+                <span>Cận chiến - Chiêu nộ Bão Kiếm</span>
             </button>
             <button class="class-button" data-class="archer">
                 🏹
@@ -31,7 +31,7 @@
             <button class="class-button" data-class="scientist">
                 🧪
                 <b>Nhà khoa học</b>
-                <span>Hóa chất - Đột phá công nghệ</span>
+                <span>Hóa chất - Rồng Sấm Sét</span>
             </button>
         </div>
     </div>
@@ -45,7 +45,7 @@
             <div>⭐ EXP: <span id="exp">0</span>/<span id="exp-needed">70</span></div>
             <div>💥 ATK: <span id="damage">10</span></div>
             <div>❤️ HP: <span id="player-hp">100</span>/<span id="player-max-hp">100</span></div>
-            <div>⚡ Nộ: <span id="scientist-ult">0</span>/100</div>
+            <div id="ult-hud-box">⚡ Nộ: <span id="ult-energy">0</span>/100</div>
             <div class="hud-buttons">
                 <button id="btn-toggle-ui">🎒 Menu (B/C)</button>
             </div>
@@ -55,19 +55,11 @@
         <div id="viewport">
             <!-- TOÀN BỘ THẾ GIỚI GAME (WORLD MAP) -->
             <div id="world">
-                <!-- CÂY TRANG TRÍ -->
-                <div class="tree" style="left: 120px; top: 100px;">🌳</div>
-                <div class="tree" style="left: 700px; top: 80px;">🌲</div>
-                <div class="tree" style="left: 1100px; top: 350px;">🌳</div>
-                <div class="tree" style="left: 1500px; top: 200px;">🌲</div>
-                <div class="tree" style="left: 1900px; top: 450px;">🌳</div>
-                <div class="tree" style="left: 300px; top: 800px;">🌲</div>
-                <div class="tree" style="left: 850px; top: 950px;">🌳</div>
-                <div class="tree" style="left: 1400px; top: 1100px;">🌲</div>
-                <div class="tree" style="left: 2100px; top: 1200px;">🌳</div>
+                <!-- CÂY CỐI SẼ ĐƯỢC TẠO TỰ ĐỘNG TẠI ĐÂY -->
+                <div id="trees-container"></div>
 
                 <!-- NGƯỜI CHƠI -->
-                <div id="player">⚔️</div>
+                <div id="player"></div>
 
                 <!-- GOBLINS -->
                 <div id="enemies-container"></div>
@@ -84,7 +76,6 @@
 
             <!-- GIAO DIỆN KÉP: BÊN TRÁI (STATS) - BÊN PHẢI (TÚI ĐỒ) -->
             <div id="side-menu-container" class="side-menu-container">
-                <!-- BÊN TRÁI: BẢNG TRẠNG THÁI -->
                 <div class="side-panel left-panel">
                     <div class="panel-header">
                         <h3>📜 Trạng Thái</h3>
@@ -100,12 +91,11 @@
                     </div>
                 </div>
 
-                <!-- BÊN PHẢI: BẢNG TÚI ĐỒ -->
                 <div class="side-panel right-panel">
                     <div class="panel-header">
                         <h3>🎒 Túi Đồ</h3>
                     </div>
-                    <p class="modal-hint">Nhấp chạm vật phẩm để dùng</p>
+                    <p class="modal-hint">Nhấp chuột/chạm vật phẩm để dùng</p>
                     <div id="inventory-grid" class="inventory-grid"></div>
                 </div>
             </div>
@@ -113,7 +103,6 @@
 
         <!-- CỤM PHÍM BẤM ẢO CẢM ỨNG CHO ĐIỆN THOẠI -->
         <div id="touch-controls">
-            <!-- Cụm D-Pad bên trái -->
             <div class="touch-dpad">
                 <button class="touch-btn dpad-up" data-key="w">▲</button>
                 <div class="dpad-middle">
@@ -123,7 +112,6 @@
                 </div>
             </div>
 
-            <!-- Cụm nút hành động bên phải -->
             <div class="touch-actions">
                 <button class="touch-btn btn-act btn-ult" data-action="ult">⚡</button>
                 <button class="touch-btn btn-act btn-jump" data-action="jump">🦘</button>
@@ -132,7 +120,7 @@
         </div>
 
         <div id="message">
-            PC: WASD (Di chuyển) • SHIFT (Chạy) • J (Nhảy) • SPACE (Đánh) • E (Nộ) • B/C (Menu) • Phím ~ (Debug Tool)
+            PC: WASD (Di chuyển) • SHIFT (Chạy) • J (Nhảy) • SPACE (Đánh) • E (Chiêu Nộ) • B/C (Mở Menu) • Phím ~ (Debug)
         </div>
     </div>
 
@@ -152,6 +140,15 @@
         </div>
     </div>
 
+    <!-- Nạp các file class trước -->
+    <script src="js/classes/warrior.js"></script>
+    <script src="js/classes/mage.js"></script>
+    <script src="js/classes/archer.js"></script>
+    <script src="js/classes/scientist.js"></script>
+
+    <!-- Nạp game.js sau cùng -->
     <script src="game.js"></script>
+</body>
+</html>
 </body>
 </html>
