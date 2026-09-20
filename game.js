@@ -12,7 +12,9 @@ let isSideMenuOpen = false, isGodMode = false, isNPCModalOpen = false;
 let isJumping = false, isAttacking = false, isCastingUlt = false;
 let facingDirection = "left", animFrameId = null, lastTime = performance.now();
 
-// Vector điều hướng nhận từ Cần Joystick (Mobile)
+let playerDirection = 0; // 0: Xuống, 1: Trái, 2: Phải, 3: Lên
+const walkCycle = [1, 0, 1, 2];
+let walkStep = 0, animTimer = 0;
 let joystickVector = { x: 0, y: 0 };
 
 // --- 2. CLASS, NPC, QUÁI VẬT ---
@@ -182,6 +184,7 @@ function takePlayerDamage(dmg) {
 // --- 4. HÀNH ĐỘNG CHIẾN ĐẤU ---
 function attack() {
     const targets = [...enemies, ...(boss.hp > 0 ? [boss] : [])].filter(t => t.hp > 0);
+
     if (player.ranged) {
         const t = targets.reduce((b, cur) => {
             const d = dist(player, cur);
@@ -191,10 +194,24 @@ function attack() {
     } else {
         if (isAttacking) return;
         isAttacking = true;
-        $("player").classList.add("knight-attacking");
-        setTimeout(() => { $("player").classList.remove("knight-attacking"); isAttacking = false; }, 300);
+
+        const pEl = $("player");
+        const scaleX = facingDirection === "right" ? 1 : -1;
+        pEl.style.transform = `translate(-50%, -50%) scaleX(${scaleX})`;
+        pEl.classList.add("knight-attacking");
+
+        setTimeout(() => {
+            pEl.classList.remove("knight-attacking");
+            pEl.style.transform = `translate(-50%, -50%)`;
+            isAttacking = false;
+        }, 350);
+
         targets.forEach(t => {
-            if (dist(player, t) <= player.rng) applyDamage(t, player.dmg);
+            const inRange = dist(player, t) <= player.rng;
+            const isFront = facingDirection === "right" ? (t.x >= player.x - 20) : (t.x <= player.x + 20);
+            if (inRange && isFront) {
+                applyDamage(t, player.dmg);
+            }
         });
     }
 }
@@ -211,34 +228,39 @@ function castUltimate() {
     if (!isGodMode) player.energy = 0;
     updateHUD();
 
-    const targets = [...enemies, ...(boss.hp > 0 ? [boss] : [])].filter(t => t.hp > 0);
-    if (player.classKey === "warrior") {
+ if (player.classKey === "warrior") {
         isCastingUlt = true;
-        $("player").classList.add("knight-bladestorm");
-        const aura = document.createElement("div");
-        aura.className = "bladestorm-aura";
-        $("world").appendChild(aura);
-        let ticks = 0;
-        const timer = setInterval(() => {
-            aura.style.left = `${player.x}px`;
-            aura.style.top = `${player.y}px`;
-            targets.filter(t => dist(player, t) <= 180).forEach(t => applyDamage(t, Math.floor(player.dmg * 0.9)));
-            if (++ticks >= 8) {
-                clearInterval(timer);
-                aura.remove();
-                $("player").classList.remove("knight-bladestorm");
-                isCastingUlt = false;
+        const pEl = $("player");
+        pEl.classList.remove("knight-sprite");
+        pEl.classList.add("knight-ultimate-lion");
+
+        // Gây sát thương diện rộng xung quanh/phía trước khi sư tử lao tới
+        const targets = [...enemies, ...(boss.hp > 0 ? [boss] : [])].filter(t => t.hp > 0);
+        targets.forEach(t => {
+            const inRange = dist(player, t) <= 300; // Tầm ảnh hưởng của sư tử
+            if (inRange) {
+                applyDamage(t, t.isBoss ? 200 : t.hp + 999);
             }
-        }, 180);
-    } else {
-        const dragon = document.createElement("div");
-        dragon.className = "lightning-dragon";
-        dragon.innerHTML = "⚡🐉⚡";
-        dragon.style.top = `${player.y}px`;
-        $("world").appendChild(dragon);
-        targets.forEach(t => applyDamage(t, t.isBoss ? 90 : 65));
-        setTimeout(() => dragon.remove(), 1000);
+        });
+
+        // Chạy xong hoạt ảnh gồng nộ thì trả về sprite bình thường
+        setTimeout(() => {
+            pEl.classList.remove("knight-ultimate-lion");
+            pEl.classList.add("knight-sprite");
+            isCastingUlt = false;
+        }, 600);
+        return;
     }
+
+    // Nộ class khác
+    const targets = [...enemies, ...(boss.hp > 0 ? [boss] : [])].filter(t => t.hp > 0);
+    const dragon = document.createElement("div");
+    dragon.className = "lightning-dragon";
+    dragon.innerHTML = "⚡🐉⚡";
+    dragon.style.top = `${player.y}px`;
+    $("world").appendChild(dragon);
+    targets.forEach(t => applyDamage(t, t.isBoss ? 90 : 65));
+    setTimeout(() => dragon.remove(), 1000);
 }
 
 // --- 5. MINIMAP & GAME LOOP ---
@@ -248,14 +270,10 @@ function drawMinimap() {
     const sx = cvs.width / MAP.w, sy = cvs.height / MAP.h;
     ctx.fillStyle = "#1e3c1b"; ctx.fillRect(0, 0, cvs.width, cvs.height);
 
-    // NPC Thợ rèn (Vàng)
     ctx.fillStyle = "#ffb300"; ctx.beginPath(); ctx.arc(blacksmithNPC.x * sx, blacksmithNPC.y * sy, 3.5, 0, 7); ctx.fill();
-    // Quái thường (Xanh dương)
     ctx.fillStyle = "#2979ff";
     enemies.filter(e => e.hp > 0).forEach(e => { ctx.beginPath(); ctx.arc(e.x * sx, e.y * sy, 2.5, 0, 7); ctx.fill(); });
-    // Boss (Đỏ)
     if (boss.hp > 0) { ctx.fillStyle = "#ff1744"; ctx.beginPath(); ctx.arc(boss.x * sx, boss.y * sy, 5, 0, 7); ctx.fill(); }
-    // Người chơi (Xanh lá)
     ctx.fillStyle = "#00e676"; ctx.beginPath(); ctx.arc(player.x * sx, player.y * sy, 3.5, 0, 7); ctx.fill();
 }
 
@@ -264,11 +282,23 @@ function gameLoop(time) {
     lastTime = time;
 
     if (!isSideMenuOpen && !isNPCModalOpen) {
-        // Kết hợp di chuyển cả Bàn phím PC lẫn Cần Joystick Mobile
         let dx = (keys["d"] ? 1 : 0) - (keys["a"] ? 1 : 0) || joystickVector.x;
         let dy = (keys["s"] ? 1 : 0) - (keys["w"] ? 1 : 0) || joystickVector.y;
 
-        if (dx) facingDirection = dx > 0 ? "right" : "left";
+        const isMoving = (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1);
+
+        if (Math.abs(dy) > Math.abs(dx)) {
+            if (dy > 0) playerDirection = 0;
+            else if (dy < 0) playerDirection = 3;
+        } else if (Math.abs(dx) > 0) {
+            if (dx > 0) {
+                playerDirection = 2;
+                facingDirection = "right";
+            } else {
+                playerDirection = 1;
+                facingDirection = "left";
+            }
+        }
 
         const currentSpd = (keys["shift"] ? player.spd * 1.55 : player.spd) * dt;
         const nx = clamp(player.x + dx * currentSpd, 40, MAP.w - 40);
@@ -278,15 +308,29 @@ function gameLoop(time) {
 
         const pEl = $("player");
         pEl.style.left = `${player.x}px`; pEl.style.top = `${player.y}px`; pEl.style.zIndex = Math.floor(player.y);
-        pEl.classList.toggle("running-lean", (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) && !isJumping);
-        pEl.classList.toggle("facing-left", facingDirection === "left");
-        pEl.classList.toggle("facing-right", facingDirection === "right");
 
-        // Camera bám theo Player
+        if (player.classKey === "warrior" && !isCastingUlt && !isAttacking) {
+            let col = 1;
+            if (isMoving && !isJumping) {
+                animTimer += dt * 1000;
+                if (animTimer >= 140) {
+                    animTimer = 0;
+                    walkStep = (walkStep + 1) % walkCycle.length;
+                }
+                col = walkCycle[walkStep];
+            } else {
+                walkStep = 0; animTimer = 0; col = 1;
+            }
+            pEl.style.backgroundPosition = `${col * 50}\%${playerDirection * 33.3333}%`;
+        } else if (player.classKey !== "warrior") {
+            pEl.classList.toggle("running-lean", isMoving && !isJumping);
+            pEl.classList.toggle("facing-left", facingDirection === "left");
+            pEl.classList.toggle("facing-right", facingDirection === "right");
+        }
+
         $("world").style.transform = `translate(${-clamp(player.x - vw / 2, 0, MAP.w - vw)}px,${-clamp(player.y - vh / 2, 0, MAP.h - vh)}px)`;
         $("npc-blacksmith")?.querySelector(".npc-bubble")?.classList.toggle("active", dist(player, blacksmithNPC) < 100);
 
-        // AI Quái vật
         const allEnemies = [...enemies.filter(e => e.hp > 0), ...(boss.hp > 0 ? [boss] : [])];
         allEnemies.forEach(en => {
             const d = dist(player, en);
@@ -308,7 +352,6 @@ function gameLoop(time) {
             }
         });
 
-        // Đạn bay
         for (let i = projectiles.length - 1; i >= 0; i--) {
             const p = projectiles[i];
             p.x += p.vx * dt; p.y += p.vy * dt;
@@ -330,23 +373,24 @@ function gameLoop(time) {
     animFrameId = requestAnimationFrame(gameLoop);
 }
 
-// --- 6. HỆ THỐNG ĐIỀU KHIỂN JOYSTICK (MOBILE) & BÀN PHÍM (PC) ---
+// --- 6. HỆ THỐNG ĐIỀU KHIỂN ---
 function setupControls() {
-    // 1. Phím Bàn Phím PC
     window.onkeydown = e => {
         if (e.repeat) return;
         const k = e.key.toLowerCase();
         keys[k] = true;
-        if (k === "f" && dist(player, blacksmithNPC) < 100) isNPCModalOpen ? closeNPCModal() : openNPCModal();
+        
+        if (k === "n" || (k === "f" && dist(player, blacksmithNPC) < 100)) {
+            isNPCModalOpen ? closeNPCModal() : openNPCModal();
+        }
         if (k === "j") jump();
         if (e.code === "Space") attack();
-        if (k === "e") castUltimate();
+        if (k === "f" || k === "e") castUltimate();
         if (["b", "c", "i"].includes(k)) toggleDualMenu();
         if (k === "~" || k === "`") $("debug-panel").style.display = $("debug-panel").style.display === "block" ? "none" : "block";
     };
     window.onkeyup = e => keys[e.key.toLowerCase()] = false;
 
-    // 2. Cần điều khiển Joystick cho Mobile
     const joyZone = $("joystick-zone");
     const joyStick = $("joystick-stick");
     let touchId = null, startPos = { x: 0, y: 0 };
@@ -393,7 +437,6 @@ function setupControls() {
     window.addEventListener("touchend", endJoy);
     window.addEventListener("touchcancel", endJoy);
 
-    // 3. Nút bấm cảm ứng Mobile
     document.querySelectorAll(".touch-action-btn").forEach(btn => {
         btn.addEventListener("touchstart", e => {
             e.preventDefault();
@@ -462,42 +505,53 @@ window.toggleDualMenu = () => {
 };
 $("btn-toggle-ui").onclick = toggleDualMenu;
 
-// Khởi chạy game khi chọn class
-document.querySelectorAll(".class-button").forEach(btn => {
-    btn.onclick = () => {
-        player.classKey = btn.dataset.class;
-        recalculateStats();
-        const pEl = $("player");
-        pEl.className = player.classKey === "warrior" ? "knight-sprite facing-left" : "facing-left";
-        pEl.innerHTML = player.classKey === "warrior" ? "" : CLASSES[player.classKey].icon;
+function initClassSelection() {
+    document.querySelectorAll(".class-button").forEach(btn => {
+        btn.onclick = () => {
+            player.classKey = btn.dataset.class;
+            recalculateStats();
+            const pEl = $("player");
 
-        $("class-screen").style.display = "none";
-        $("game-screen").style.display = "block";
+            pEl.className = player.classKey === "warrior" ? "knight-sprite" : "facing-left";
+            pEl.innerHTML = player.classKey === "warrior" ? "" : CLASSES[player.classKey].icon;
 
-        $("trees-container").innerHTML = trees.map(t => `<div class="tree" style="left:${t.x}px;top:${t.y}px;font-size:${t.size}px;z-index:${Math.floor(t.y)};">${t.icon}</div>`).join("");
-        $("enemies-container").innerHTML = enemies.map(e => `
-            <div id="enemy-${e.id}" class="enemy-item" style="left:${e.x}px;top:${e.y}px">
-                <div class="enemy-info-bar"><span class="enemy-hp" id="hp-${e.id}">${e.hp}/${e.hp}</span></div>
-                <div class="enemy-visual">${e.icon}</div>
-            </div>
-        `).join("");
+            $("class-screen").style.display = "none";
+            $("game-screen").style.display = "block";
 
-        Object.assign($("npc-blacksmith").style, { left: `${blacksmithNPC.x}px`, top: `${blacksmithNPC.y}px`, zIndex: `${blacksmithNPC.y}` });
-        $("npc-blacksmith").onclick = () => { if (dist(player, blacksmithNPC) < 100) openNPCModal(); };
+            $("trees-container").innerHTML = trees.map(t => `<div class="tree" style="left:${t.x}px;top:${t.y}px;font-size:${t.size}px;z-index:${Math.floor(t.y)};">${t.icon}</div>`).join("");
+            $("enemies-container").innerHTML = enemies.map(e => `
+                <div id="enemy-${e.id}" class="enemy-item" style="left:${e.x}px;top:${e.y}px">
+                    <div class="enemy-info-bar"><span class="enemy-hp" id="hp-${e.id}">${e.hp}/${e.hp}</span></div>
+                    <div class="enemy-visual">${e.icon}</div>
+                </div>
+            `).join("");
 
-        updateHUD();
-        setupControls();
-        if (!animFrameId) animFrameId = requestAnimationFrame(gameLoop);
-    };
-});
+            Object.assign($("npc-blacksmith").style, { left: `${blacksmithNPC.x}px`, top: `${blacksmithNPC.y}px`, zIndex: `${blacksmithNPC.y}` });
+            $("npc-blacksmith").onclick = () => { if (dist(player, blacksmithNPC) < 100) openNPCModal(); };
 
-$("btn-change-class").onclick = () => {
-    $("game-screen").style.display = "none";
-    $("class-screen").style.display = "block";
-    if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
-};
+            updateHUD();
+            setupControls();
+            if (!animFrameId) animFrameId = requestAnimationFrame(gameLoop);
+        };
+    });
 
-// Debug Tools
+    const btnChange = $("btn-change-class");
+    if (btnChange) {
+        btnChange.onclick = () => {
+            $("game-screen").style.display = "none";
+            $("class-screen").style.display = "block";
+            if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+        };
+    }
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initClassSelection);
+} else {
+    initClassSelection();
+}
+
+// Debug Tools (Phím ~)
 window.debugFullEnergy = () => { player.energy = 100; updateHUD(); };
 window.debugAddGold = v => { player.gold += v; updateHUD(); };
 window.debugInfiniteMode = () => { isGodMode = !isGodMode; alert("God mode: " + isGodMode); };

@@ -16,17 +16,17 @@
             <button class="class-button" data-class="warrior">
                 <span class="btn-icon">⚔️</span>
                 <b>Kiếm sĩ</b>
-                <span>Cận chiến - Bão Kiếm</span>
+                <span>Cận chiến - Sư Tử Gầm</span>
             </button>
             <button class="class-button" data-class="archer">
                 <span class="btn-icon">🏹</span>
                 <b>Cung thủ</b>
-                <span>Tầm xa - Tốc độ cao</span>
+                <span>Tầm xa - Mưa Tên</span>
             </button>
             <button class="class-button" data-class="mage">
                 <span class="btn-icon">🔮</span>
                 <b>Pháp sư</b>
-                <span>Phép thuật - Cầu lửa</span>
+                <span>Phép thuật - Cầu Lửa</span>
             </button>
             <button class="class-button" data-class="scientist">
                 <span class="btn-icon">⚡</span>
@@ -38,7 +38,6 @@
 
     <!-- KHUNG CHƠI GAME CHÍNH -->
     <div id="game-screen">
-        <!-- HUD THANH TRẠNG THÁI -->
         <div id="status">
             <div class="hud-stat-group">
                 <span>❤️ <b id="player-hp">130</b>/<span id="player-max-hp">130</span></span>
@@ -54,18 +53,14 @@
             </div>
         </div>
 
-        <!-- KHUNG VIEWPORT (CAMERA THEO DÕI) -->
         <div id="viewport">
             <div id="world">
                 <div id="trees-container"></div>
-                
-                <!-- NPC Thợ Rèn -->
                 <div id="npc-blacksmith" class="npc-entity">
                     <div class="npc-bubble">💬 Nhấn F / Chạm để nói chuyện</div>
                     <div class="npc-sprite">🧔‍♂️</div>
                     <div class="npc-name">Thợ Rèn Brokk</div>
                 </div>
-
                 <div id="player"></div>
                 <div id="enemies-container"></div>
                 <div id="boss">
@@ -75,7 +70,6 @@
                 <div id="projectiles-container"></div>
             </div>
 
-            <!-- BẢN ĐỒ THU NHỎ (MINIMAP) -->
             <div id="minimap-container">
                 <canvas id="minimap" width="130" height="85"></canvas>
             </div>
@@ -87,12 +81,12 @@
                         <h3 id="npc-modal-title">Tiệm Rèn Brokk</h3>
                         <button class="btn-close-modal" onclick="closeNPCModal()">✖</button>
                     </div>
-                    <p id="npc-modal-speech">"Chào hiệp sĩ! Muốn mua thêm kiếm sắt hay áo giáp để sinh tồn không?"</p>
+                    <p id="npc-modal-speech">"Chào hiệp sĩ! Muốn mua thêm trang bị không?"</p>
                     <div id="shop-items-grid" class="shop-grid"></div>
                 </div>
             </div>
 
-            <!-- GIAO DIỆN TÚI ĐỒ & CHỈ SỐ -->
+            <!-- TÚI ĐỒ & CHỈ SỐ -->
             <div id="side-menu-container" class="side-menu-container">
                 <div class="side-panel">
                     <div class="panel-header">
@@ -114,14 +108,13 @@
                 </div>
             </div>
 
-            <!-- NÚT ẢO DÀNH CHO ĐIỆN THOẠI (TỰ ẨN TRÊN PC) -->
+            <!-- NÚT ẢO MOBILE -->
             <div id="touch-layer">
                 <div id="joystick-zone">
                     <div id="joystick-base">
                         <div id="joystick-stick"></div>
                     </div>
                 </div>
-
                 <div id="touch-actions-cluster">
                     <button class="touch-action-btn btn-interact" data-action="interact">💬</button>
                     <button class="touch-action-btn btn-ult" data-action="ult">⚡</button>
@@ -132,7 +125,7 @@
         </div>
 
         <div id="pc-instruction-bar">
-            PC: <b>WASD</b> Di chuyển • <b>SHIFT</b> Chạy nhanh • <b>SPACE</b> Đánh • <b>J</b> Nhảy • <b>E</b> Nộ • <b>F</b> Nói chuyện NPC • <b>B / I</b> Túi đồ
+            PC: <b>WASD</b> Di chuyển • <b>SHIFT</b> Chạy nhanh • <b>SPACE</b> Đánh • <b>J</b> Nhảy • <b>E / F</b> Nộ • <b>B / I</b> Túi đồ
         </div>
     </div>
 

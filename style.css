@@ -17,7 +17,6 @@ body, html {
     touch-action: none;
 }
 
-/* MÀN HÌNH CHỌN CLASS */
 #class-screen {
     text-align: center;
     padding: 40px 15px;
@@ -63,7 +62,6 @@ body, html {
     position: relative;
 }
 
-/* THANH TRẠNG THÁI TRÊN CÙNG */
 #status {
     width: 100%;
     height: 44px;
@@ -99,7 +97,6 @@ body, html {
 }
 .hud-buttons button:hover { background: #00bcd4; color: #000; }
 
-/* VIEWPORT (CAMERA) */
 #viewport {
     width: 100vw;
     height: calc(100vh - 44px);
@@ -120,7 +117,6 @@ body, html {
     left: 0; top: 0;
 }
 
-/* THANH HƯỚNG DẪN PC */
 #pc-instruction-bar {
     position: absolute;
     bottom: 6px;
@@ -135,7 +131,6 @@ body, html {
     z-index: 1000;
 }
 
-/* BẢN ĐỒ THU NHỎ (MINIMAP) */
 #minimap-container {
     position: absolute;
     top: 10px;
@@ -149,11 +144,10 @@ body, html {
 }
 #minimap { display: block; border-radius: 4px; }
 
-/* THỰC THỂ: PLAYER, NPC, QUÁI */
 #player {
     position: absolute;
-    width: 80px;
-    height: 80px;
+    width: 64px;
+    height: 64px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -163,39 +157,82 @@ body, html {
     transform: translate(-50%, -50%) scaleX(var(--dir));
 }
 
+/* SPRITE HIỆP SĨ DI CHUYỂN */
 .knight-sprite {
-    width: 80px !important;
-    height: 80px !important;
-    background-image: url('knight_attack.png');
-    background-repeat: no-repeat;
+    width: 90px !important;
+    height: 90px !important;
+    background-image: url('knight.png') !important;
+    background-repeat: no-repeat !important;
     background-size: 300% 400% !important;
-    background-position: 0% 66.66%;
     image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    animation: none !important;
 }
+
+#player.knight-sprite {
+    transform: translate(-50%, -50%) !important;
+}
+
 .facing-left { --dir: 1; }
 .facing-right { --dir: -1; }
-
-.running-lean { animation: runAnim 0.3s infinite alternate; }
-@keyframes runAnim {
-    0% { transform: translate(-50%, -50%) scaleX(var(--dir)) translateY(0); }
-    100% { transform: translate(-50%, -50%) scaleX(var(--dir)) translateY(-5px); }
-}
+.running-lean { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
 
 .jumping { animation: jumpArc 0.4s ease-out forwards; }
 @keyframes jumpArc {
-    0% { transform: translate(-50%, -50%) scaleX(var(--dir)); }
-    50% { transform: translate(-50%, -90px) scaleX(var(--dir)); }
-    100% { transform: translate(-50%, -50%) scaleX(var(--dir)); }
+    0% { transform: translate(-50%, -50%); }
+    50% { transform: translate(-50%, -90px); }
+    100% { transform: translate(-50%, -50%); }
 }
 
-.knight-attacking { animation: atkAnim 0.3s steps(2) forwards; }
-@keyframes atkAnim {
-    0% { transform: translate(-50%, -50%) scaleX(var(--dir)); }
-    50% { transform: translate(calc(-50% + (var(--dir) * 10px)), -50%) scaleX(var(--dir)); }
-    100% { transform: translate(-50%, -50%) scaleX(var(--dir)); }
+
+/* HOẠT ẢNH CHÉM KIẾM 8 FRAME - ĐÃ CÂN BẰNG TỈ LỆ */
+.knight-attacking {
+    width: 100x !important;       /* Nới rộng khung hình khi chém */
+    height: 90x !important;      /* Nới chiều cao để kiếm không bị ép bẹp */
+    background-image: url('knight_attack.png') !important;
+    background-repeat: no-repeat !important;
+    background-size: 800% 100% !important; /* 8 khung hình xếp ngang */
+    animation: knightSlashAnim 0.35s steps(7) forwards !important;
+    transform-origin: center bottom !important; /* Giữ chân nhân vật chạm đất cố định */
 }
 
-/* NPC & QUÁI VẬT */
+@keyframes knightSlashAnim {
+    from { background-position: 0% 0%; }
+    to { background-position: 100% 0%; }
+}
+
+@keyframes knightSlashAnim {
+    from { background-position: 0% 0%; }
+    to { background-position: 100% 0%; }
+}
+
+/* HOẠT ẢNH GỒNG NỘ */
+/* SPRITE KHI GỒNG NỘ - MỞ RỘNG KHUNG HÌNH */
+.knight-ultimate-lion {
+    width: 220px !important;            /* Kéo rộng khung để không bị cắt đôi nhân vật */
+    height: 120px !important;           /* Chiều cao tương xứng */
+    background-image: url('knight_ultimate.png') !important;
+    background-repeat: no-repeat !important;
+    background-size: auto 100% !important; /* Khóa theo chiều cao để giữ đúng tỉ lệ gốc */
+    animation: lionUltAnim 0.6s steps(4) forwards !important;
+}
+
+@keyframes lionUltAnim {
+    from { background-position: 0% 0%; }
+    to { background-position: 100% 0%; }
+}
+
+/* SÓNG CHIÊU THỨC NỘ */
+.lion-wave-projectile {
+    position: absolute;
+    width: 90px;
+    height: auto;
+    pointer-events: none;
+    z-index: 2500;
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 0 12px #ffeb3b) drop-shadow(0 0 6px #ff9800);
+}
+
 .npc-entity {
     position: absolute;
     width: 60px; height: 60px;
@@ -238,14 +275,6 @@ body, html {
 .projectile, .enemy-arrow { position: absolute; z-index: 2000; transform: translate(-50%, -50%); }
 .tree { position: absolute; transform: translate(-50%, -85%); pointer-events: none; }
 
-/* CHIÊU NỘ */
-.knight-bladestorm { animation: spinAnim 0.3s linear infinite !important; }
-@keyframes spinAnim { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
-.bladestorm-aura {
-    position: absolute; width: 300px; height: 300px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,215,0,0.4) 0%, transparent 70%);
-    border: 2px dashed #ffc107; transform: translate(-50%, -50%); pointer-events: none;
-}
 .lightning-dragon {
     position: absolute; font-size: 80px; z-index: 2500; transform: translateY(-50%);
     animation: flyDragon 1.2s ease-out forwards; pointer-events: none;
@@ -256,9 +285,6 @@ body, html {
     100% { left: 2400px; opacity: 0; }
 }
 
-/* ========================================= */
-/* TỐI ƯU GIAO DIỆN CẢM ỨNG & THIẾT BỊ DI ĐỘNG */
-/* ========================================= */
 #touch-layer {
     position: absolute;
     top: 0; left: 0;
@@ -344,17 +370,14 @@ body, html {
     font-size: 16px;
 }
 
-/* NẾU LÀ MÁY TÍNH (DÙNG CHUỘT / POINTER CHÍNH XÁC) THÌ ẨN PHÍM ẢO */
 @media (pointer: fine) and (min-width: 900px) {
     #touch-layer { display: none !important; }
 }
 
-/* NẾU LÀ MÀN HÌNH CẢM ỨNG (MOBILE) THÌ ẨN DÒNG CHỮ HƯỚNG DẪN PC */
 @media (pointer: coarse), (max-width: 899px) {
     #pc-instruction-bar { display: none !important; }
 }
 
-/* MODAL TÚI ĐỒ & CỬA HÀNG */
 .npc-modal, .side-menu-container {
     display: none;
     position: absolute;
