@@ -9,15 +9,22 @@ window.onresize = () => { vw = window.innerWidth; vh = window.innerHeight - 44; 
 
 const keys = {}, projectiles = [];
 let isSideMenuOpen = false, isGodMode = false, isNPCModalOpen = false;
-let isJumping = false, isAttacking = false, isCastingUlt = false;
+let isAttacking = false, isCastingUlt = false;
 let facingDirection = "left", animFrameId = null, lastTime = performance.now();
 
-let playerDirection = 0; // 0: Xuống, 1: Trái, 2: Phải, 3: Lên
+let playerDirection = 0; 
 const walkCycle = [1, 0, 1, 2];
 let walkStep = 0, animTimer = 0;
 let joystickVector = { x: 0, y: 0 };
 
-// --- 2. CLASS, NPC, QUÁI VẬT ---
+// --- 2. ĐỊNH NGHĨA BẬC VŨ KHÍ & CLASS ---
+const TIERS = {
+    copper:  { name: "Đồng", colorClass: "tier-copper", multiplier: 1.0, next: "silver", cost: 30 },
+    silver:  { name: "Bạc",  colorClass: "tier-silver", multiplier: 1.6, next: "gold", cost: 70 },
+    gold:    { name: "Vàng", colorClass: "tier-gold",   multiplier: 2.5, next: "diamond", cost: 150 },
+    diamond: { name: "Kim Cương", colorClass: "tier-diamond", multiplier: 4.0, next: null, cost: 0 }
+};
+
 const CLASSES = {
     warrior:   { name: "Kiếm Sĩ",      baseDmg: 24, spd: 7.5, rng: 110, baseHp: 130, icon: "⚔️" },
     archer:    { name: "Cung Thủ",      baseDmg: 18, spd: 8.5, rng: 360, baseHp: 95,  icon: "🏹", ranged: true, pIcon: "🏹" },
@@ -27,37 +34,85 @@ const CLASSES = {
 
 let player = { classKey: "warrior", x: 450, y: 350, spd: 320, dmg: 24, defense: 0, hp: 130, maxHp: 130, gold: 50, exp: 0, expNeed: 70, lvl: 1, rng: 110, energy: 0 };
 let equipped = { weapon: null, armor: null };
-let boss = { x: 900, y: 500, hp: 250, maxHp: 250, spd: 85, dmg: 18, cd: 0, isBoss: true };
+
+const BOSS_REQUIRED_LVL = 5;
+let bossSpawned = false;
+let boss = { x: 1200, y: 750, hp: 350, maxHp: 350, spd: 90, dmg: 24, cd: 0, isBoss: true };
 
 const blacksmithNPC = {
     x: 520, y: 280,
     shop: [
-        { id: "iron_sword", name: "Kiếm Sắt", icon: "🗡️", type: "weapon", bonusDmg: 10, cost: 40 },
-        { id: "great_axe", name: "Rìu Thép", icon: "🪓", type: "weapon", bonusDmg: 22, cost: 110 },
+        { id: "iron_sword", name: "Kiếm Sắt", icon: "🗡️", type: "weapon", tier: "copper", baseBonusDmg: 12, cost: 35 },
+        { id: "great_axe",  name: "Rìu Chiến", icon: "🪓", type: "weapon", tier: "copper", baseBonusDmg: 20, cost: 65 },
         { id: "leather_armor", name: "Giáp Da", icon: "🥋", type: "armor", bonusHp: 40, defense: 3, cost: 50 },
-        { id: "steel_armor", name: "Giáp Thép", icon: "🛡️", type: "armor", bonusHp: 90, defense: 7, cost: 130 },
-        { id: "hp_pot", name: "Bình Máu", icon: "🧪", type: "potion", heal: 40, cost: 15 }
+        { id: "steel_armor",   name: "Giáp Thép", icon: "🛡️", type: "armor", bonusHp: 90, defense: 7, cost: 130 },
+        { id: "hp_pot", name: "Bình Máu", icon: "🧪", type: "potion", heal: 45, cost: 15 }
     ]
 };
 
 let inventory = [
-    { id: "hp_pot", name: "Bình Máu", icon: "🧪", count: 5, type: "potion", heal: 35 },
-    { id: "iron_sword", name: "Kiếm Sắt", icon: "🗡️", count: 1, type: "weapon", bonusDmg: 10 }
+    { id: "hp_pot", name: "Bình Máu", icon: "🧪", count: 4, type: "potion", heal: 45 },
+    { id: "iron_sword", name: "Kiếm Sắt", icon: "🗡️", count: 1, type: "weapon", tier: "copper", baseBonusDmg: 12, bonusDmg: 12 }
 ];
 
 const MONSTERS = {
-    goblin:   { name: "Goblin", icon: "👺", hp: 35, spd: 120, dmg: 7, rng: 38, exp: 18, gold: [3, 8] },
-    wolf:     { name: "Sói Rừng", icon: "🐺", hp: 25, spd: 195, dmg: 6, rng: 35, exp: 20, gold: [2, 6] },
-    skeleton: { name: "Xương", icon: "💀", hp: 30, spd: 80, dmg: 9, rng: 260, exp: 25, gold: [5, 12], ranged: true },
-    brute:    { name: "Orc Đồ Tể", icon: "👹", hp: 110, spd: 75, dmg: 16, rng: 45, exp: 50, gold: [15, 30] }
+    goblin:   { name: "Goblin", icon: "👺", hp: 35, spd: 120, dmg: 8, rng: 38, exp: 20, gold: [3, 8], shootsPoison: false },
+    wolf:     { name: "Sói Rừng", icon: "🐺", hp: 30, spd: 195, dmg: 7, rng: 35, exp: 22, gold: [3, 7], shootsPoison: false },
+    skeleton: { name: "Xương Cung Thủ", icon: "💀", hp: 32, spd: 80, dmg: 10, rng: 260, exp: 28, gold: [6, 13], ranged: true, shootsPoison: false },
+    brute:    { name: "Orc Đồ Tể", icon: "👹", hp: 120, spd: 75, dmg: 18, rng: 45, exp: 55, gold: [15, 30], shootsPoison: true }
 };
+
+function initMonsterStats(rawEnemy) {
+    const base = MONSTERS[rawEnemy.t];
+    const scale = 1 + (player.lvl - 1) * 0.22;
+    const dmgScale = 1 + (player.lvl - 1) * 0.15;
+    const maxHp = Math.round(base.hp * scale);
+    
+    return {
+        ...rawEnemy,
+        ...base,
+        maxHp: maxHp,
+        hp: maxHp,
+        dmg: Math.round(base.dmg * dmgScale),
+        cd: 0,
+        ox: rawEnemy.ox || rawEnemy.x,
+        oy: rawEnemy.oy || rawEnemy.y,
+        canShootSpecial: player.lvl >= 3 || base.shootsPoison
+    };
+}
 
 let enemies = [
     { id: 1, t: "goblin", x: 300, y: 200 }, { id: 2, t: "wolf", x: 650, y: 220 },
     { id: 3, t: "skeleton", x: 800, y: 260 }, { id: 4, t: "goblin", x: 500, y: 820 },
     { id: 5, t: "brute", x: 1150, y: 880 }, { id: 6, t: "skeleton", x: 1500, y: 400 },
     { id: 7, t: "brute", x: 1750, y: 550 }, { id: 8, t: "wolf", x: 2100, y: 400 }
-].map(e => ({ ...e, ...MONSTERS[e.t], maxHp: MONSTERS[e.t].hp, cd: 0, ox: e.x, oy: e.y }));
+].map(e => initMonsterStats(e));
+
+function scaleAllMonsters() {
+    enemies = enemies.map(e => {
+        const scaled = initMonsterStats(e);
+        const hpEl = $(`hp-${e.id}`);
+        if (hpEl) hpEl.innerText = `${scaled.hp}/${scaled.maxHp}`;
+        return scaled;
+    });
+
+    if (bossSpawned) {
+        boss.maxHp = Math.round(350 * (1 + (player.lvl - 1) * 0.3));
+        boss.hp = boss.maxHp;
+        boss.dmg = Math.round(24 * (1 + (player.lvl - 1) * 0.2));
+        $("boss-hp").innerText = `BOSS: ${boss.hp}/${boss.maxHp}`;
+    }
+}
+
+function checkBossSpawnCondition() {
+    if (!bossSpawned && player.lvl >= BOSS_REQUIRED_LVL) {
+        bossSpawned = true;
+        boss.hp = boss.maxHp;
+        $("boss").style.display = "block";
+        createFloatText(player.x, player.y - 80, "⚠️ TRÙM CUỐI ĐÃ XUẤT HIỆN! ⚠️", "#ff1744");
+        alert(`Bạn đã đạt Cấp ${player.lvl}! Boss Orc Hùng Mạnh đã xuất hiện tại trung tâm bản đồ!`);
+    }
+}
 
 const trees = Array.from({ length: 20 }, (_, i) => ({
     x: ((i * 143) % 2200) + 100, y: ((i * 97) % 1300) + 100,
@@ -77,8 +132,8 @@ function createFloatText(x, y, txt, color = "#ffeb3b") {
 
 function recalculateStats() {
     const c = CLASSES[player.classKey];
-    player.dmg = c.baseDmg + (equipped.weapon?.bonusDmg || 0) + (player.lvl - 1) * 5;
-    player.maxHp = c.baseHp + (equipped.armor?.bonusHp || 0) + (player.lvl - 1) * 15;
+    player.dmg = c.baseDmg + (equipped.weapon?.bonusDmg || 0) + (player.lvl - 1) * 6;
+    player.maxHp = c.baseHp + (equipped.armor?.bonusHp || 0) + (player.lvl - 1) * 18;
     player.defense = equipped.armor?.defense || 0;
     player.hp = Math.min(player.hp, player.maxHp);
     player.spd = c.spd * 45;
@@ -99,22 +154,22 @@ function updateHUD() {
         $("stat-atk").innerText = player.dmg;
         $("stat-def").innerText = player.defense;
         $("stat-speed").innerText = Math.round(player.spd / 45);
-        $("slot-weapon").querySelector(".slot-content").innerText = equipped.weapon ? `${equipped.weapon.icon} +${equipped.weapon.bonusDmg} ATK` : "Trống";
+       $("slot-weapon").querySelector(".slot-content").innerText = equipped.weapon ? `${equipped.weapon.icon} [${TIERS[equipped.weapon.tier || 'copper'].name}] +${equipped.weapon.bonusDmg} ATK` : "Trống";
         $("slot-armor").querySelector(".slot-content").innerText = equipped.armor ? `${equipped.armor.icon} +${equipped.armor.bonusHp} HP` : "Trống";
     }
 }
 
 // --- 3. BẮN ĐẠN & SÁT THƯƠNG ---
-function spawnBullet(src, target, dmg, icon, isEnemy = false) {
+function spawnBullet(src, target, dmg, icon, isEnemy = false, speed = 460) {
     const d = dist(src, target) || 1;
     const el = document.createElement("div");
-    el.className = isEnemy ? "enemy-arrow" : "projectile";
+    el.className = isEnemy ? (icon === "🧪" || icon === "🟣" ? "enemy-poison-ball" : "enemy-arrow") : "projectile";
     el.innerText = icon;
     $("projectiles-container").appendChild(el);
     projectiles.push({
         x: src.x, y: src.y,
-        vx: ((target.x - src.x) / d) * (isEnemy ? 420 : 720),
-        vy: ((target.y - src.y) / d) * (isEnemy ? 420 : 720),
+        vx: ((target.x - src.x) / d) * (isEnemy ? speed : 720),
+        vy: ((target.y - src.y) / d) * (isEnemy ? speed : 720),
         damage: dmg, isEnemy, el
     });
 }
@@ -135,9 +190,10 @@ function applyDamage(target, dmg) {
     if (target.hp <= 0) {
         if (target.isBoss) {
             $("boss").style.display = "none";
-            player.gold += 80;
-            createFloatText(target.x, target.y - 50, "+80 💰", "#ffd700");
-            alert("Chiến thắng Boss Orc!");
+            bossSpawned = false;
+            player.gold += 150;
+            createFloatText(target.x, target.y - 50, "+150 💰", "#ffd700");
+            alert("Chúc mừng! Bạn đã tiêu diệt Boss Orc Khổng Lồ!");
         } else {
             $(`enemy-${target.id}`).style.display = "none";
             const g = Math.floor(Math.random() * (target.gold[1] - target.gold[0] + 1)) + target.gold[0];
@@ -147,10 +203,13 @@ function applyDamage(target, dmg) {
             if ((player.exp += target.exp) >= player.expNeed) {
                 player.exp -= player.expNeed;
                 player.lvl++;
-                player.expNeed += 35;
+                player.expNeed += 40;
                 recalculateStats();
                 player.hp = player.maxHp;
                 createFloatText(player.x, player.y - 60, "⭐ LEVEL UP! ⭐", "#00e5ff");
+                
+                scaleAllMonsters();
+                checkBossSpawnCondition();
             }
 
             setTimeout(() => {
@@ -169,21 +228,21 @@ function applyDamage(target, dmg) {
 }
 
 function takePlayerDamage(dmg) {
-    if (isGodMode || isJumping) return;
+    if (isGodMode) return;
     const real = Math.max(1, dmg - player.defense);
     player.hp = Math.max(0, player.hp - real);
     createFloatText(player.x, player.y - 30, `-${real}`, "#ff1744");
     if (player.hp <= 0) {
-        alert("Bạn đã hi sinh! Đang tái sinh...");
+        alert("Bạn đã hi sinh! Đang hồi sinh tại căn cứ...");
         player.hp = player.maxHp;
         player.x = 450; player.y = 350;
     }
     updateHUD();
 }
 
-// --- 4. HÀNH ĐỘNG CHIẾN ĐẤU ---
+// --- 4. CHIẾN ĐẤU ---
 function attack() {
-    const targets = [...enemies, ...(boss.hp > 0 ? [boss] : [])].filter(t => t.hp > 0);
+    const targets = [...enemies, ...(bossSpawned && boss.hp > 0 ? [boss] : [])].filter(t => t.hp > 0);
 
     if (player.ranged) {
         const t = targets.reduce((b, cur) => {
@@ -216,34 +275,24 @@ function attack() {
     }
 }
 
-function jump() {
-    if (isJumping) return;
-    isJumping = true;
-    $("player").classList.add("jumping");
-    setTimeout(() => { $("player").classList.remove("jumping"); isJumping = false; }, 400);
-}
-
 function castUltimate() {
     if ((!isGodMode && player.energy < 100) || isCastingUlt) return;
     if (!isGodMode) player.energy = 0;
     updateHUD();
 
- if (player.classKey === "warrior") {
+    if (player.classKey === "warrior") {
         isCastingUlt = true;
         const pEl = $("player");
         pEl.classList.remove("knight-sprite");
         pEl.classList.add("knight-ultimate-lion");
 
-        // Gây sát thương diện rộng xung quanh/phía trước khi sư tử lao tới
-        const targets = [...enemies, ...(boss.hp > 0 ? [boss] : [])].filter(t => t.hp > 0);
+        const targets = [...enemies, ...(bossSpawned && boss.hp > 0 ? [boss] : [])].filter(t => t.hp > 0);
         targets.forEach(t => {
-            const inRange = dist(player, t) <= 300; // Tầm ảnh hưởng của sư tử
-            if (inRange) {
-                applyDamage(t, t.isBoss ? 200 : t.hp + 999);
+            if (dist(player, t) <= 300) {
+                applyDamage(t, t.isBoss ? 220 : t.hp + 999);
             }
         });
 
-        // Chạy xong hoạt ảnh gồng nộ thì trả về sprite bình thường
         setTimeout(() => {
             pEl.classList.remove("knight-ultimate-lion");
             pEl.classList.add("knight-sprite");
@@ -252,14 +301,13 @@ function castUltimate() {
         return;
     }
 
-    // Nộ class khác
-    const targets = [...enemies, ...(boss.hp > 0 ? [boss] : [])].filter(t => t.hp > 0);
+    const targets = [...enemies, ...(bossSpawned && boss.hp > 0 ? [boss] : [])].filter(t => t.hp > 0);
     const dragon = document.createElement("div");
     dragon.className = "lightning-dragon";
     dragon.innerHTML = "⚡🐉⚡";
     dragon.style.top = `${player.y}px`;
     $("world").appendChild(dragon);
-    targets.forEach(t => applyDamage(t, t.isBoss ? 90 : 65));
+    targets.forEach(t => applyDamage(t, t.isBoss ? 110 : 75));
     setTimeout(() => dragon.remove(), 1000);
 }
 
@@ -273,7 +321,7 @@ function drawMinimap() {
     ctx.fillStyle = "#ffb300"; ctx.beginPath(); ctx.arc(blacksmithNPC.x * sx, blacksmithNPC.y * sy, 3.5, 0, 7); ctx.fill();
     ctx.fillStyle = "#2979ff";
     enemies.filter(e => e.hp > 0).forEach(e => { ctx.beginPath(); ctx.arc(e.x * sx, e.y * sy, 2.5, 0, 7); ctx.fill(); });
-    if (boss.hp > 0) { ctx.fillStyle = "#ff1744"; ctx.beginPath(); ctx.arc(boss.x * sx, boss.y * sy, 5, 0, 7); ctx.fill(); }
+    if (bossSpawned && boss.hp > 0) { ctx.fillStyle = "#ff1744"; ctx.beginPath(); ctx.arc(boss.x * sx, boss.y * sy, 5.5, 0, 7); ctx.fill(); }
     ctx.fillStyle = "#00e676"; ctx.beginPath(); ctx.arc(player.x * sx, player.y * sy, 3.5, 0, 7); ctx.fill();
 }
 
@@ -284,20 +332,14 @@ function gameLoop(time) {
     if (!isSideMenuOpen && !isNPCModalOpen) {
         let dx = (keys["d"] ? 1 : 0) - (keys["a"] ? 1 : 0) || joystickVector.x;
         let dy = (keys["s"] ? 1 : 0) - (keys["w"] ? 1 : 0) || joystickVector.y;
-
         const isMoving = (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1);
 
         if (Math.abs(dy) > Math.abs(dx)) {
             if (dy > 0) playerDirection = 0;
             else if (dy < 0) playerDirection = 3;
         } else if (Math.abs(dx) > 0) {
-            if (dx > 0) {
-                playerDirection = 2;
-                facingDirection = "right";
-            } else {
-                playerDirection = 1;
-                facingDirection = "left";
-            }
+            if (dx > 0) { playerDirection = 2; facingDirection = "right"; }
+            else { playerDirection = 1; facingDirection = "left"; }
         }
 
         const currentSpd = (keys["shift"] ? player.spd * 1.55 : player.spd) * dt;
@@ -311,7 +353,7 @@ function gameLoop(time) {
 
         if (player.classKey === "warrior" && !isCastingUlt && !isAttacking) {
             let col = 1;
-            if (isMoving && !isJumping) {
+            if (isMoving) {
                 animTimer += dt * 1000;
                 if (animTimer >= 140) {
                     animTimer = 0;
@@ -323,7 +365,7 @@ function gameLoop(time) {
             }
             pEl.style.backgroundPosition = `${col * 50}\%${playerDirection * 33.3333}%`;
         } else if (player.classKey !== "warrior") {
-            pEl.classList.toggle("running-lean", isMoving && !isJumping);
+            pEl.classList.toggle("running-lean", isMoving);
             pEl.classList.toggle("facing-left", facingDirection === "left");
             pEl.classList.toggle("facing-right", facingDirection === "right");
         }
@@ -331,11 +373,11 @@ function gameLoop(time) {
         $("world").style.transform = `translate(${-clamp(player.x - vw / 2, 0, MAP.w - vw)}px,${-clamp(player.y - vh / 2, 0, MAP.h - vh)}px)`;
         $("npc-blacksmith")?.querySelector(".npc-bubble")?.classList.toggle("active", dist(player, blacksmithNPC) < 100);
 
-        const allEnemies = [...enemies.filter(e => e.hp > 0), ...(boss.hp > 0 ? [boss] : [])];
-        allEnemies.forEach(en => {
+        const activeEnemies = [...enemies.filter(e => e.hp > 0), ...(bossSpawned && boss.hp > 0 ? [boss] : [])];
+        activeEnemies.forEach(en => {
             const d = dist(player, en);
             const el = en.isBoss ? $("boss") : $(`enemy-${en.id}`);
-            const limit = en.isBoss ? 55 : (en.ranged ? 220 : en.rng);
+            const limit = en.isBoss ? 60 : (en.ranged ? 220 : en.rng);
 
             if (d < 650 && d > limit) {
                 const mx = ((player.x - en.x) / d) * en.spd * dt;
@@ -346,9 +388,18 @@ function gameLoop(time) {
             if (el) { el.style.left = `${en.x}px`; el.style.top = `${en.y}px`; el.style.zIndex = Math.floor(en.y); }
 
             if (en.cd > 0) en.cd -= dt * 1000;
-            if (en.cd <= 0 && d <= (en.ranged ? 260 : (en.isBoss ? 75 : en.rng))) {
-                if (en.ranged) { spawnBullet(en, player, en.dmg, "🏹", true); en.cd = 1800; }
-                else { takePlayerDamage(en.dmg); en.cd = en.t === "wolf" ? 750 : 1100; }
+            if (en.cd <= 0) {
+                if (en.ranged && d <= 260) {
+                    spawnBullet(en, player, en.dmg, "🏹", true, 420);
+                    en.cd = 1800;
+                } else if (en.canShootSpecial && d > en.rng && d <= 320) {
+                    const projectileIcon = en.t === "brute" ? "🟣" : "🧪";
+                    spawnBullet(en, player, Math.round(en.dmg * 0.9), projectileIcon, true, 380);
+                    en.cd = 2400;
+                } else if (d <= (en.isBoss ? 80 : en.rng)) {
+                    takePlayerDamage(en.dmg);
+                    en.cd = en.t === "wolf" ? 750 : 1100;
+                }
             }
         });
 
@@ -356,7 +407,7 @@ function gameLoop(time) {
             const p = projectiles[i];
             p.x += p.vx * dt; p.y += p.vy * dt;
             const hitP = p.isEnemy && dist(p, player) < 30;
-            const hitT = !p.isEnemy && allEnemies.find(t => dist(p, t) < 30);
+            const hitT = !p.isEnemy && activeEnemies.find(t => dist(p, t) < 30);
 
             if (hitP || hitT || checkTree(p.x, p.y, 8) || p.x < 0 || p.x > MAP.w || p.y < 0 || p.y > MAP.h) {
                 if (hitP) takePlayerDamage(p.damage);
@@ -383,7 +434,6 @@ function setupControls() {
         if (k === "n" || (k === "f" && dist(player, blacksmithNPC) < 100)) {
             isNPCModalOpen ? closeNPCModal() : openNPCModal();
         }
-        if (k === "j") jump();
         if (e.code === "Space") attack();
         if (k === "f" || k === "e") castUltimate();
         if (["b", "c", "i"].includes(k)) toggleDualMenu();
@@ -442,22 +492,68 @@ function setupControls() {
             e.preventDefault();
             const act = btn.dataset.action;
             if (act === "atk") attack();
-            if (act === "jump") jump();
             if (act === "ult") castUltimate();
             if (act === "interact" && dist(player, blacksmithNPC) < 100) openNPCModal();
         }, { passive: false });
     });
 }
 
-// --- 7. TÚI ĐỒ, CỬA HÀNG NPC & CHỌN CLASS ---
+// --- 7. TÚI ĐỒ & HỆ THỐNG GHÉP VŨ KHÍ ---
 function renderInventory() {
     $("inventory-grid").innerHTML = Array.from({ length: 8 }, (_, i) => {
         const it = inventory[i];
+        if (!it) return `<div class="inv-slot"></div>`;
+
+        const tierHtml = it.tier ? `<span class="tier-tag ${TIERS[it.tier].colorClass}">${TIERS[it.tier].name}</span>` : "";
         return `<div class="inv-slot" onclick="useItem(${i})">
-            ${it ? `<div class="slot-icon">${it.icon}</div><div class="slot-name">${it.name}</div>` : ""}
+            ${tierHtml}
+            <div class="slot-icon">${it.icon}</div>
+            <div class="slot-name">${it.name} ${it.count > 1 ? `x${it.count}` : ""}</div>
         </div>`;
     }).join("");
 }
+
+window.fuseDuplicateWeapons = function() {
+    let fused = false;
+    for (let i = 0; i < inventory.length; i++) {
+        const itemA = inventory[i];
+        if (!itemA || itemA.type !== "weapon" || !itemA.tier) continue;
+
+        const currentTierInfo = TIERS[itemA.tier];
+        if (!currentTierInfo.next) continue;
+
+        for (let j = i + 1; j < inventory.length; j++) {
+            const itemB = inventory[j];
+            if (itemB && itemB.id === itemA.id && itemB.tier === itemA.tier) {
+                const upgradeCost = currentTierInfo.cost;
+                if (player.gold < upgradeCost) {
+                    alert(`Không đủ vàng để nâng lên bậc ${TIERS[currentTierInfo.next].name}! Cần ${upgradeCost} 💰.`);
+                    return;
+                }
+
+                player.gold -= upgradeCost;
+                inventory.splice(j, 1);
+
+                const nextTier = currentTierInfo.next;
+                itemA.tier = nextTier;
+                itemA.bonusDmg = Math.round((itemA.baseBonusDmg || 10) * TIERS[nextTier].multiplier);
+                itemA.name = `${itemA.name.split(" [")[0]} [${TIERS[nextTier].name}]`;
+
+                createFloatText(player.x, player.y - 40, `✨ Hợp nhất thành công: ${itemA.name}!`, "#00e5ff");
+                fused = true;
+                break;
+            }
+        }
+        if (fused) break;
+    }
+
+    if (!fused) {
+        alert("Không tìm thấy 2 vũ khí cùng loại & cùng bậc trong túi để ghép!");
+    } else {
+        updateHUD();
+        renderInventory();
+    }
+};
 
 window.useItem = function(idx) {
     const it = inventory[idx];
@@ -473,7 +569,7 @@ window.useItem = function(idx) {
         inventory.splice(idx, 1);
         if (prev) inventory.push(prev);
         recalculateStats();
-        createFloatText(player.x, player.y - 40, `Đã mặc ${it.name}!`, "#00e5ff");
+        createFloatText(player.x, player.y - 40, `Đã trang bị ${it.name}!`, "#00e5ff");
     }
     updateHUD(); renderInventory();
 };
@@ -483,7 +579,7 @@ window.openNPCModal = () => {
     $("npc-dialog-modal").style.display = "flex";
     $("shop-items-grid").innerHTML = blacksmithNPC.shop.map((it, idx) => `
         <div class="shop-item-card">
-            <div>${it.icon} <b>${it.name}</b> (${it.cost} 💰)</div>
+            <div>${it.icon} <b>${it.name}</b> ${it.tier ? `[${TIERS[it.tier].name}]` : ""} (${it.cost} 💰)</div>
             <button class="shop-btn-buy" onclick="buyShopItem(${idx})">Mua</button>
         </div>
     `).join("");
@@ -492,8 +588,15 @@ window.closeNPCModal = () => { isNPCModalOpen = false; $("npc-dialog-modal").sty
 window.buyShopItem = idx => {
     const it = blacksmithNPC.shop[idx];
     if (player.gold < it.cost) return alert("Không đủ vàng!");
+    if (inventory.length >= 8) return alert("Túi đồ đã đầy (tối đa 8 ô)!");
+    
     player.gold -= it.cost;
-    inventory.push({ ...it, count: 1 });
+    const newItem = { ...it, count: 1 };
+    if (newItem.type === "weapon") {
+        newItem.bonusDmg = Math.round(newItem.baseBonusDmg * TIERS[newItem.tier].multiplier);
+        newItem.name = `${newItem.name} [${TIERS[newItem.tier].name}]`;
+    }
+    inventory.push(newItem);
     createFloatText(player.x, player.y - 40, `Đã mua ${it.name}!`);
     updateHUD();
 };
@@ -554,5 +657,18 @@ if (document.readyState === "loading") {
 // Debug Tools (Phím ~)
 window.debugFullEnergy = () => { player.energy = 100; updateHUD(); };
 window.debugAddGold = v => { player.gold += v; updateHUD(); };
+window.debugLevelUp = () => { 
+    player.lvl++; 
+    recalculateStats(); 
+    scaleAllMonsters(); 
+    checkBossSpawnCondition(); 
+    updateHUD(); 
+};
 window.debugInfiniteMode = () => { isGodMode = !isGodMode; alert("God mode: " + isGodMode); };
-window.debugSpawnBoss = () => { boss.hp = boss.maxHp; boss.x = player.x + 150; boss.y = player.y; $("boss").style.display = "block"; };
+window.debugSpawnBoss = () => { 
+    bossSpawned = true; 
+    boss.hp = boss.maxHp; 
+    boss.x = player.x + 150; 
+    boss.y = player.y; 
+    $("boss").style.display = "block"; 
+};
